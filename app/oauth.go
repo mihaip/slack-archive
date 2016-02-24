@@ -7,8 +7,8 @@ import (
 )
 
 type OAuthConfig struct {
-	ClientId string
-	ClientSecret     string
+	ClientId     string
+	ClientSecret string
 }
 
 func initSlackOAuthConfig() (config OAuthConfig) {

@@ -16,8 +16,8 @@ import (
 	"appengine/mail"
 	"appengine/urlfetch"
 
-	"github.com/nlopes/slack"
 	"github.com/gorilla/sessions"
+	"github.com/nlopes/slack"
 )
 
 const (
@@ -37,7 +37,7 @@ type AppError struct {
 
 type AppSignedInState struct {
 	Account        *Account
-	SlackClient   *slack.Client
+	SlackClient    *slack.Client
 	session        *sessions.Session
 	request        *http.Request
 	responseWriter http.ResponseWriter
@@ -168,7 +168,7 @@ func (fn SignedInAppHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	state := &AppSignedInState{
 		Account:        account,
-		SlackClient:   slack.New(account.ApiToken),
+		SlackClient:    slack.New(account.ApiToken),
 		session:        session,
 		responseWriter: w,
 		request:        r,

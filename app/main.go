@@ -1,6 +1,5 @@
 package main
 
-
 import (
 	"net/http"
 	"net/url"
@@ -60,23 +59,28 @@ func indexHandler(w http.ResponseWriter, r *http.Request) *AppError {
 	if err != nil {
 		return SlackFetchError(err, "user")
 	}
+	team, err := slackClient.GetTeamInfo()
+	if err != nil {
+		return SlackFetchError(err, "team")
+	}
 	emailAddress, err := account.GetDigestEmailAddress(slackClient)
 	if err != nil {
 		return SlackFetchError(err, "emails")
 	}
 
 	var settingsSummary = map[string]interface{}{
-		"Frequency":       account.Frequency,
-		"EmailAddress":    emailAddress,
+		"Frequency":    account.Frequency,
+		"EmailAddress": emailAddress,
 	}
 	var data = map[string]interface{}{
 		"User":            user,
+		"Team":            team,
 		"SettingsSummary": settingsSummary,
 		"DetectTimezone":  !account.HasTimezoneSet,
 	}
 	return templates["index"].Render(w, data, &AppSignedInState{
 		Account:        account,
-		SlackClient:   slackClient,
+		SlackClient:    slackClient,
 		session:        session,
 		responseWriter: w,
 		request:        r,
@@ -89,15 +93,17 @@ func signInHandler(w http.ResponseWriter, r *http.Request) *AppError {
 	authCodeUrlQuery.Set("client_id", slackOAuthConfig.ClientId)
 	authCodeUrlQuery.Set("scope",
 		// Basic user info
-		"users:read " +
-		// Channel archive
-		"channels:read channels:history " +
-		// Private channel archive
-		"groups:read groups:history " +
-		// Direct message archive
-		"im:read im:history " +
-		// Multi-party direct mesage archive
-		"mpim:read mpim:history")
+		"users:read "+
+			// Team info
+			"team:read "+
+			// Channel archive
+			"channels:read channels:history "+
+			// Private channel archive
+			"groups:read groups:history "+
+			// Direct message archive
+			"im:read im:history "+
+			// Multi-party direct mesage archive
+			"mpim:read mpim:history")
 	redirectUrlString, _ := AbsoluteRouteUrl("slack-callback")
 	redirectUrl, _ := url.Parse(redirectUrlString)
 	if continueUrl := r.FormValue("continue_url"); continueUrl != "" {
@@ -120,8 +126,6 @@ func signOutHandler(w http.ResponseWriter, r *http.Request) *AppError {
 func slackOAuthCallbackHandler(w http.ResponseWriter, r *http.Request) *AppError {
 	code := r.FormValue("code")
 	redirectUrl := AbsolutePathUrl(r.URL.Path)
-	c := appengine.NewContext(r)
-	c.Warningf("redirectUrl: %s", redirectUrl)
 	token, _, err := slack.GetOAuthToken(
 		slackOAuthConfig.ClientId, slackOAuthConfig.ClientSecret, code,
 		redirectUrl, false)
@@ -135,13 +139,17 @@ func slackOAuthCallbackHandler(w http.ResponseWriter, r *http.Request) *AppError
 		return SlackFetchError(err, "user")
 	}
 
-//	c := appengine.NewContext(r)
+	c := appengine.NewContext(r)
 	account, err := getAccount(c, authTest.UserID)
 	if err != nil && err != datastore.ErrNoSuchEntity {
 		return InternalError(err, "Could not look up user")
 	}
 	if account == nil {
-		account = &Account{SlackUserId: authTest.UserID}
+		account = &Account{
+			SlackUserId:   authTest.UserID,
+			SlackTeamName: authTest.Team,
+			SlackTeamUrl:  authTest.URL,
+		}
 	}
 	account.ApiToken = token
 	// Persist the default email address now, both to avoid additional lookups

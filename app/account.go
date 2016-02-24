@@ -11,14 +11,15 @@ import (
 )
 
 type Account struct {
-	SlackUserId string `datastore:",noindex"`
-	ApiToken string `datastore:",noindex"`
-	TimezoneName         string         `datastore:",noindex"`
-	TimezoneLocation     *time.Location `datastore:"-,"`
-	HasTimezoneSet       bool           `datastore:"-,"`
-	DigestEmailAddress   string
-	Frequency            string
-	WeeklyDay            time.Weekday
+	SlackUserId        string         `datastore:",noindex"`
+	SlackTeamName      string         `datastore:",noindex"`
+	SlackTeamUrl       string         `datastore:",noindex"`
+	ApiToken           string         `datastore:",noindex"`
+	TimezoneName       string         `datastore:",noindex"`
+	TimezoneLocation   *time.Location `datastore:"-,"`
+	HasTimezoneSet     bool           `datastore:"-,"`
+	DigestEmailAddress string         `datastore:",noindex"`
+	Frequency          string         `datastore:",noindex"`
 }
 
 func getAccount(c appengine.Context, slackUserId string) (*Account, error) {

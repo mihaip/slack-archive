@@ -3,7 +3,7 @@
 {{define "body"}}
 
 <div class="blurb">
-  You're signed in as {{ .User.Name }}.
+  You're signed in as {{ .User.Name }} from <a href="https://{{ .Team.Domain }}.slack.com/">{{ .Team.Name }}</a>.
 </div>
 
 {{end}}
