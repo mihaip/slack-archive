@@ -1,0 +1,10 @@
+{{define "title"}}{{end}}
+
+{{define "body"}}
+
+<form id="sign-in-form" method="POST" action="{{routeUrl "sign-in"}}">
+  <input type="hidden" name="continue_url" value="{{.ContinueUrl}}">
+  <input type="submit" class="action-button" value="Sign In">
+</form>
+
+{{end}}

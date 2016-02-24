@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Slack Archive {{template "title" .}}</title>
+  <meta name="viewport" content="initial-scale=1 maximum-scale=1 user-scalable=no">
+  <link rel="stylesheet" href="/static/main.css">
+</head>
+<body>
+  <div class="header">
+    <a href="/">
+      <h1>Slack Archive</h1>
+    </a>
+  </div>
+
+  <div class="body">
+    <h1>{{template "title" .}}</h1>
+
+    {{range .Flashes}}
+      {{template "flash" .}}
+    {{end}}
+
+    {{template "body" .}}
+  </div>
+
+  <div class="footer">
+    <div class="contents">
+      A project by <a href="http://persistent.info">Mihai Parparita</a>
+      -
+      <a href="https://github.com/mihaip/slack-archive">Source</a>
+    </div>
+  </div>
+
+</body>
+</html>
