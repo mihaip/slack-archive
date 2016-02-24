@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"runtime/debug"
 	"strings"
+	"time"
 
 	"appengine"
 	"appengine/mail"
@@ -142,7 +143,12 @@ func (fn AppHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	c := appengine.NewContext(r)
 	// The Slack API uses the default HTTP transport, so we need to override it
 	// to get it to work on App Engine.
-	http.DefaultTransport = &urlfetch.Transport{Context: c}
+	appengineTransport := &urlfetch.Transport{Context: c}
+	appengineTransport.Deadline = time.Second * 60
+	http.DefaultTransport = &CachingTransport{
+		Transport: appengineTransport,
+		Context:   c,
+	}
 	if e := fn(w, r); e != nil {
 		handleAppError(e, w, r)
 	}
@@ -160,6 +166,13 @@ func (fn SignedInAppHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	c := appengine.NewContext(r)
+	// See above about overriding the default transport
+	appengineTransport := &urlfetch.Transport{Context: c}
+	appengineTransport.Deadline = time.Second * 60
+	http.DefaultTransport = &CachingTransport{
+		Transport: appengineTransport,
+		Context:   c,
+	}
 	account, err := getAccount(c, userId)
 	if account == nil || err != nil {
 		handleAppError(NotSignedIn(r), w, r)
