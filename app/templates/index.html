@@ -1,9 +1,43 @@
 {{define "title"}}{{end}}
 
+{{define "conversation"}}
+    <li class="conversation">
+      {{ .Name }}
+    </li>
+{{end}}
+
 {{define "body"}}
 
 <div class="blurb">
   You're signed in as {{ .User.Name }} from <a href="https://{{ .Team.Domain }}.slack.com/">{{ .Team.Name }}</a>.
 </div>
+
+
+<h2>Channels</h2>
+
+<ul>
+  {{range .Conversations.Channels}}
+    {{template "conversation" .}}
+  {{end}}
+</ul>
+
+<h2>Private Channels</h2>
+
+<ul>
+  {{range .Conversations.PrivateChannels}}
+    {{template "conversation" .}}
+  {{end}}
+</ul>
+
+<h2>Direct Messages</h2>
+
+<ul>
+  {{range .Conversations.DirectMessages}}
+    {{template "conversation" .}}
+  {{end}}
+  {{range .Conversations.MultiPartyDirectMessages}}
+    {{template "conversation" .}}
+  {{end}}
+</ul>
 
 {{end}}

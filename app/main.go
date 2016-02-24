@@ -63,10 +63,18 @@ func indexHandler(w http.ResponseWriter, r *http.Request) *AppError {
 	if err != nil {
 		return SlackFetchError(err, "team")
 	}
+	conversations, err := getConversations(slackClient, account)
+	if err != nil {
+		return SlackFetchError(err, "conversations")
+	}
+
 	emailAddress, err := account.GetDigestEmailAddress(slackClient)
 	if err != nil {
 		return SlackFetchError(err, "emails")
 	}
+
+	c.Warningf("conversations: %d", len(conversations.AllConversations))
+	c.Warningf("  channels: %d", len(conversations.Channels))
 
 	var settingsSummary = map[string]interface{}{
 		"Frequency":    account.Frequency,
@@ -75,6 +83,7 @@ func indexHandler(w http.ResponseWriter, r *http.Request) *AppError {
 	var data = map[string]interface{}{
 		"User":            user,
 		"Team":            team,
+		"Conversations":   conversations,
 		"SettingsSummary": settingsSummary,
 		"DetectTimezone":  !account.HasTimezoneSet,
 	}
