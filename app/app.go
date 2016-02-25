@@ -281,16 +281,16 @@ func (t *Template) Render(w http.ResponseWriter, data map[string]interface{}, st
 	return nil
 }
 
-func RouteUrl(name string) (string, error) {
-	url, err := router.Get(name).URL()
+func RouteUrl(name string, pairs ...string) (string, error) {
+	url, err := router.Get(name).URL(pairs...)
 	if err != nil {
 		return "", err
 	}
 	return url.String(), nil
 }
 
-func AbsoluteRouteUrl(name string) (string, error) {
-	url, err := router.Get(name).URL()
+func AbsoluteRouteUrl(name string, pairs ...string) (string, error) {
+	url, err := router.Get(name).URL(pairs...)
 	if err != nil {
 		return "", err
 	}

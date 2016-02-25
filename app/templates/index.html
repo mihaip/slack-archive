@@ -2,14 +2,14 @@
 
 {{define "conversation"}}
     <li class="conversation">
-      {{ .Name }}
+      <a href="{{.HistoryUrl}}">{{.Name}}</a>
     </li>
 {{end}}
 
 {{define "body"}}
 
 <div class="blurb">
-  You're signed in as {{ .User.Name }} from <a href="https://{{ .Team.Domain }}.slack.com/">{{ .Team.Name }}</a>.
+  You're signed in as {{.User.Name}} from <a href="https://{{.Team.Domain}}.slack.com/">{{.Team.Name}}</a>.
 </div>
 
 

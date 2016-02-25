@@ -47,6 +47,14 @@ func newConversation(conversationType ConversationType, id string, name string, 
 	}
 }
 
+func (conversation *Conversation) HistoryUrl() string {
+	if conversation.Type == ConversationTypeChannel {
+		url, _ := RouteUrl("channel-history", "id", conversation.Id)
+		return url
+	}
+	return ""
+}
+
 func getConversations(slackClient *slack.Client, account *Account) (*Conversations, error) {
 	conversations := &Conversations{}
 

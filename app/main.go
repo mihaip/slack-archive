@@ -29,6 +29,9 @@ func init() {
 	router.Handle("/session/sign-in", AppHandler(signInHandler)).Name("sign-in").Methods("POST")
 	router.Handle("/session/sign-out", AppHandler(signOutHandler)).Name("sign-out").Methods("POST")
 	router.Handle("/slack/callback", AppHandler(slackOAuthCallbackHandler)).Name("slack-callback")
+
+	router.Handle("/channel/{id}", SignedInAppHandler(channelHistoryHandler)).Name("channel-history")
+
 	http.Handle("/", router)
 }
 
@@ -188,4 +191,22 @@ func slackOAuthCallbackHandler(w http.ResponseWriter, r *http.Request) *AppError
 		continueUrl = indexUrl.String()
 	}
 	return RedirectToUrl(continueUrl)
+}
+
+func channelHistoryHandler(w http.ResponseWriter, r *http.Request, state *AppSignedInState) *AppError {
+	vars := mux.Vars(r)
+	channelId := vars["id"]
+	channel, err := state.SlackClient.GetChannelInfo(channelId)
+	if err != nil {
+		return SlackFetchError(err, "channel")
+	}
+	conversation := newChannelConversation(channel, state.Account)
+	return conversationHistoryHandler(w, r, state, conversation)
+}
+
+func conversationHistoryHandler(w http.ResponseWriter, r *http.Request, state *AppSignedInState, conversation *Conversation) *AppError {
+	var data = map[string]interface{}{
+		"Conversation": conversation,
+	}
+	return templates["conversation-history"].Render(w, data, state)
 }
