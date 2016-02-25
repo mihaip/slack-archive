@@ -13,31 +13,37 @@
 </div>
 
 
-<h2>Channels</h2>
+{{if .Conversations.Channels}}
+  <h2>Channels</h2>
 
-<ul>
-  {{range .Conversations.Channels}}
-    {{template "conversation" .}}
-  {{end}}
-</ul>
+  <ul>
+    {{range .Conversations.Channels}}
+      {{template "conversation" .}}
+    {{end}}
+  </ul>
+{{end}}
 
-<h2>Private Channels</h2>
+{{if .Conversations.PrivateChannels}}
+  <h2>Private Channels</h2>
 
-<ul>
-  {{range .Conversations.PrivateChannels}}
-    {{template "conversation" .}}
-  {{end}}
-</ul>
+  <ul>
+    {{range .Conversations.PrivateChannels}}
+      {{template "conversation" .}}
+    {{end}}
+  </ul>
+{{end}}
 
-<h2>Direct Messages</h2>
+{{if or .Conversations.DirectMessages .Conversations.MultiPartyDirectMessages}}
+  <h2>Direct Messages</h2>
 
-<ul>
-  {{range .Conversations.DirectMessages}}
-    {{template "conversation" .}}
-  {{end}}
-  {{range .Conversations.MultiPartyDirectMessages}}
-    {{template "conversation" .}}
-  {{end}}
-</ul>
+  <ul>
+    {{range .Conversations.DirectMessages}}
+      {{template "conversation" .}}
+    {{end}}
+    {{range .Conversations.MultiPartyDirectMessages}}
+      {{template "conversation" .}}
+    {{end}}
+  </ul>
+{{end}}
 
 {{end}}

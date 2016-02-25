@@ -56,7 +56,10 @@ func getConversations(slackClient *slack.Client, account *Account) (*Conversatio
 	}
 	conversations.Channels = make([]*Conversation, 0, len(channels))
 	for i := range channels {
-		conversations.Channels = append(conversations.Channels, newChannelConversation(&channels[i], account))
+		channel := &channels[i]
+		if channel.IsMember && !channel.IsArchived {
+			conversations.Channels = append(conversations.Channels, newChannelConversation(channel, account))
+		}
 	}
 
 	groups, err := slackClient.GetGroups(false)
@@ -65,7 +68,10 @@ func getConversations(slackClient *slack.Client, account *Account) (*Conversatio
 	}
 	conversations.PrivateChannels = make([]*Conversation, 0, len(groups))
 	for i := range groups {
-		conversations.PrivateChannels = append(conversations.PrivateChannels, newPrivateChannelConversation(&groups[i], account))
+		group := &groups[i]
+		if !group.IsArchived {
+			conversations.PrivateChannels = append(conversations.PrivateChannels, newPrivateChannelConversation(group, account))
+		}
 	}
 
 	ims, err := slackClient.GetIMChannels()
