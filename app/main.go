@@ -201,8 +201,14 @@ func historyHandler(w http.ResponseWriter, r *http.Request, state *AppSignedInSt
 	if err != nil {
 		return SlackFetchError(err, "conversation")
 	}
+	params := slack.NewHistoryParameters()
+	history, err := conversation.History(params, state.SlackClient)
+	if err != nil {
+		return SlackFetchError(err, "history")
+	}
 	var data = map[string]interface{}{
 		"Conversation": conversation,
+		"History":      history,
 	}
 	return templates["conversation-history"].Render(w, data, state)
 }

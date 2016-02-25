@@ -18,6 +18,7 @@ type Conversation interface {
 	ToRef() (conversationType string, ref string)
 	InitFromRef(ref string, slackClient *slack.Client) error
 	HistoryUrl() string
+	History(params slack.HistoryParameters, slackClient *slack.Client) (*slack.History, error)
 }
 
 type ChannelConversation struct {
@@ -42,6 +43,10 @@ func (c *ChannelConversation) HistoryUrl() string {
 	return conversationHistoryUrl(c)
 }
 
+func (c *ChannelConversation) History(params slack.HistoryParameters, slackClient *slack.Client) (*slack.History, error) {
+	return slackClient.GetChannelHistory(c.channel.ID, params)
+}
+
 type PrivateChannelConversation struct {
 	group *slack.Group
 }
@@ -62,6 +67,10 @@ func (c *PrivateChannelConversation) InitFromRef(ref string, slackClient *slack.
 
 func (c *PrivateChannelConversation) HistoryUrl() string {
 	return conversationHistoryUrl(c)
+}
+
+func (c *PrivateChannelConversation) History(params slack.HistoryParameters, slackClient *slack.Client) (*slack.History, error) {
+	return slackClient.GetGroupHistory(c.group.ID, params)
 }
 
 type DirectMessageConversation struct {
@@ -102,6 +111,10 @@ func (c *DirectMessageConversation) InitFromRef(ref string, slackClient *slack.C
 
 func (c *DirectMessageConversation) HistoryUrl() string {
 	return conversationHistoryUrl(c)
+}
+
+func (c *DirectMessageConversation) History(params slack.HistoryParameters, slackClient *slack.Client) (*slack.History, error) {
+	return slackClient.GetIMHistory(c.im.ID, params)
 }
 
 type Conversations struct {
