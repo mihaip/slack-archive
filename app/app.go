@@ -310,11 +310,11 @@ func AbsolutePathUrl(path string) string {
 func loadTemplates() (templates map[string]*Template) {
 	styles := loadStyles()
 	funcMap := template.FuncMap{
-		"routeUrl": func(name string) (string, error) {
-			return RouteUrl(name)
+		"routeUrl": func(name string, pairs ...string) (string, error) {
+			return RouteUrl(name, pairs...)
 		},
-		"absoluteRouteUrl": func(name string) (string, error) {
-			return AbsoluteRouteUrl(name)
+		"absoluteRouteUrl": func(name string, pairs ...string) (string, error) {
+			return AbsoluteRouteUrl(name, pairs...)
 		},
 		"absoluteUrlForPath": func(path string) string {
 			return AbsolutePathUrl(path)
