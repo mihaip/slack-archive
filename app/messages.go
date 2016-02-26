@@ -15,6 +15,7 @@ const (
 
 type Message struct {
 	*slack.Message
+	timezoneLocation *time.Location
 }
 
 func (m *Message) TimestampTime() time.Time {
@@ -23,7 +24,7 @@ func (m *Message) TimestampTime() time.Time {
 		log.Println("Could not parse timestamp \"%s\".", m.Timestamp, err)
 		return time.Time{}
 	}
-	return time.Unix(int64(floatTimestamp), 0)
+	return time.Unix(int64(floatTimestamp), 0).In(m.timezoneLocation)
 }
 
 type MessageGroup struct {
@@ -54,7 +55,7 @@ func (mg *MessageGroup) DisplayTimestamp() string {
 	return safeFormattedDate(mg.Messages[len(mg.Messages)-1].TimestampTime().Format(MessageGroupDisplayTimestampFormat))
 }
 
-func groupMessages(messages []*slack.Message, slackClient *slack.Client) ([]*MessageGroup, error) {
+func groupMessages(messages []*slack.Message, slackClient *slack.Client, timezoneLocation *time.Location) ([]*MessageGroup, error) {
 	var currentGroup *MessageGroup = nil
 	groups := make([]*MessageGroup, 0)
 	userLookup, err := newUserLookup(slackClient)
@@ -62,7 +63,7 @@ func groupMessages(messages []*slack.Message, slackClient *slack.Client) ([]*Mes
 		return nil, err
 	}
 	for i := range messages {
-		message := &Message{messages[i]}
+		message := &Message{messages[i], timezoneLocation}
 		if message.Hidden {
 			continue
 		}

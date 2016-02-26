@@ -228,7 +228,7 @@ func historyHandler(w http.ResponseWriter, r *http.Request, state *AppSignedInSt
 		}
 		params.Latest = history.Messages[len(history.Messages)-1].Timestamp
 	}
-	messageGroups, err := groupMessages(messages, state.SlackClient)
+	messageGroups, err := groupMessages(messages, state.SlackClient, state.Account.TimezoneLocation)
 	if err != nil {
 		return SlackFetchError(err, "message groups")
 	}
