@@ -51,8 +51,21 @@ func safeFormattedDate(date string) string {
 	return buffer.String()
 }
 
+func (mg *MessageGroup) shouldContainMessage(message *Message, messageAuthor *slack.User) bool {
+	if messageAuthor.ID != mg.Author.ID {
+		return false
+	}
+	lastMessage := mg.Messages[len(mg.Messages)-1]
+	timestampDelta := message.TimestampTime().Sub(lastMessage.TimestampTime())
+	if timestampDelta > time.Minute*10 {
+		return false
+	}
+	return true
+}
+
 func (mg *MessageGroup) DisplayTimestamp() string {
-	return safeFormattedDate(mg.Messages[len(mg.Messages)-1].TimestampTime().Format(MessageGroupDisplayTimestampFormat))
+	return safeFormattedDate(mg.Messages[0].TimestampTime().Format(
+		MessageGroupDisplayTimestampFormat))
 }
 
 func groupMessages(messages []*slack.Message, slackClient *slack.Client, timezoneLocation *time.Location) ([]*MessageGroup, error) {
@@ -92,7 +105,7 @@ func groupMessages(messages []*slack.Message, slackClient *slack.Client, timezon
 				"(subtype %s), skipping", message.Type, message.SubType)
 			continue
 		}
-		if currentGroup == nil || messageAuthor.ID != currentGroup.Author.ID {
+		if currentGroup == nil || !currentGroup.shouldContainMessage(message, messageAuthor) {
 			currentGroup = &MessageGroup{
 				Messages: make([]*Message, 0),
 				Author:   messageAuthor,
