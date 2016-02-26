@@ -63,14 +63,38 @@ func groupMessages(messages []*slack.Message, slackClient *slack.Client) ([]*Mes
 	}
 	for i := range messages {
 		message := &Message{messages[i]}
-		if currentGroup == nil || message.User != currentGroup.Author.ID {
-			author, err := userLookup.GetUser(message.User)
+		if message.Hidden {
+			continue
+		}
+		var messageAuthor *slack.User = nil
+		if message.User != "" {
+			messageAuthor, err = userLookup.GetUser(message.User)
 			if err != nil {
 				return nil, err
 			}
+		} else if message.BotID != "" {
+			messageAuthor, err = userLookup.GetUser(message.BotID)
+			if err != nil {
+				return nil, err
+			}
+		} else if message.Username != "" {
+			messageAuthor = userLookup.GetUserByName(message.Username)
+			if messageAuthor == nil {
+				// Synthesize a slack.User from just the given username.
+				// It would be nice to also include the profile picture, but the
+				// Go library and the Slack API do not agree about how it is
+				// represented.
+				messageAuthor = newSyntheticUser(message.Username)
+			}
+		} else {
+			log.Printf("Could not determine author for message type %s "+
+				"(subtype %s), skipping", message.Type, message.SubType)
+			continue
+		}
+		if currentGroup == nil || messageAuthor.ID != currentGroup.Author.ID {
 			currentGroup = &MessageGroup{
 				Messages: make([]*Message, 0),
-				Author:   author,
+				Author:   messageAuthor,
 			}
 			groups = append(groups, currentGroup)
 		}

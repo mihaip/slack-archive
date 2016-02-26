@@ -1,7 +1,14 @@
 package main
 
 import (
+	"fmt"
+	"strings"
+
 	"github.com/nlopes/slack"
+)
+
+const (
+	SyntheticUserImageUrlTemplate = "https://i1.wp.com/slack.global.ssl.fastly.net/66f9/img/avatars/ava_0025-%d.png?ssl=1"
 )
 
 type UserLookup struct {
@@ -33,4 +40,29 @@ func (lookup *UserLookup) GetUser(userId string) (*slack.User, error) {
 		lookup.usersById[userId] = user
 	}
 	return user, nil
+}
+
+func (lookup *UserLookup) GetUserByName(name string) *slack.User {
+	for _, user := range lookup.usersById {
+		// Use a case-insensitive comparison, we get names with different
+		// capitalization in bot messages vs. user profiles.
+		if strings.EqualFold(name, user.Name) {
+			return user
+		}
+	}
+	return nil
+}
+
+func newSyntheticUser(name string) *slack.User {
+	return &slack.User{
+		ID:   fmt.Sprintf("synthetic-%s", name),
+		Name: name,
+		Profile: slack.UserProfile{
+			Image24:  fmt.Sprintf(SyntheticUserImageUrlTemplate, 24),
+			Image32:  fmt.Sprintf(SyntheticUserImageUrlTemplate, 32),
+			Image48:  fmt.Sprintf(SyntheticUserImageUrlTemplate, 48),
+			Image72:  fmt.Sprintf(SyntheticUserImageUrlTemplate, 72),
+			Image192: fmt.Sprintf(SyntheticUserImageUrlTemplate, 192),
+		},
+	}
 }
