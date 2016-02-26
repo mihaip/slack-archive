@@ -33,8 +33,8 @@ func init() {
 	router.Handle("/session/sign-out", AppHandler(signOutHandler)).Name("sign-out").Methods("POST")
 	router.Handle("/slack/callback", AppHandler(slackOAuthCallbackHandler)).Name("slack-callback")
 
-	router.Handle("/history/{type}/{ref}", SignedInAppHandler(historyHandler)).Name("history")
-	router.Handle("/send-conversation", SignedInAppHandler(sendConversationHandler)).Name("send-conversation").Methods("POST")
+	router.Handle("/archive/{type}/{ref}", SignedInAppHandler(conversationArchiveHandler)).Name("conversation-archive")
+	router.Handle("/send-conversation", SignedInAppHandler(sendConversationArchiveHandler)).Name("send-conversation-archive").Methods("POST")
 
 	http.Handle("/", router)
 }
@@ -194,7 +194,7 @@ func slackOAuthCallbackHandler(w http.ResponseWriter, r *http.Request) *AppError
 	return RedirectToUrl(continueUrl)
 }
 
-func historyHandler(w http.ResponseWriter, r *http.Request, state *AppSignedInState) *AppError {
+func conversationArchiveHandler(w http.ResponseWriter, r *http.Request, state *AppSignedInState) *AppError {
 	vars := mux.Vars(r)
 	conversationType := vars["type"]
 	ref := vars["ref"]
@@ -214,10 +214,10 @@ func historyHandler(w http.ResponseWriter, r *http.Request, state *AppSignedInSt
 		"ConversationRef": ref,
 		"ConversationArchive": archive,
 	}
-	return templates["conversation-history"].Render(w, data, state)
+	return templates["conversation-archive-page"].Render(w, data, state)
 }
 
-func sendConversationHandler(w http.ResponseWriter, r *http.Request, state *AppSignedInState) *AppError {
+func sendConversationArchiveHandler(w http.ResponseWriter, r *http.Request, state *AppSignedInState) *AppError {
 	conversationType := r.FormValue("conversation_type")
 	ref := r.FormValue("conversation_ref")
 	conversation, err := getConversationFromRef(conversationType, ref, state.SlackClient)
@@ -225,7 +225,7 @@ func sendConversationHandler(w http.ResponseWriter, r *http.Request, state *AppS
 		return SlackFetchError(err, "conversation")
 	}
 	c := appengine.NewContext(r)
-	sent, err := sendArchiveForConversation(conversation, state.Account, c)
+	sent, err := sendConversationArchive(conversation, state.Account, c)
 	if err != nil {
 		return InternalError(err, "Could not send digest")
 	}
@@ -234,10 +234,10 @@ func sendConversationHandler(w http.ResponseWriter, r *http.Request, state *AppS
 	} else {
 		state.AddFlash("No archive was sent, it was empty or disabled.")
 	}
-	return RedirectToRoute("history", "type", conversationType, "ref", ref)
+	return RedirectToRoute("conversation-archive", "type", conversationType, "ref", ref)
 }
 
-func sendArchiveForConversation(conversation Conversation, account *Account, c appengine.Context) (bool, error) {
+func sendConversationArchive(conversation Conversation, account *Account, c appengine.Context) (bool, error) {
 	slackClient := slack.New(account.ApiToken)
 	emailAddress, err := account.GetDigestEmailAddress(slackClient)
 	if err != nil {

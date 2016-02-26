@@ -290,7 +290,11 @@ func (t *Template) Render(w http.ResponseWriter, data map[string]interface{}, st
 }
 
 func RouteUrl(name string, pairs ...string) (string, error) {
-	url, err := router.Get(name).URL(pairs...)
+	route := router.Get(name)
+	if route == nil {
+		return "", errors.New(fmt.Sprintf("Could not look up route '%s'", name))
+	}
+	url, err := route.URL(pairs...)
 	if err != nil {
 		return "", err
 	}
@@ -298,11 +302,11 @@ func RouteUrl(name string, pairs ...string) (string, error) {
 }
 
 func AbsoluteRouteUrl(name string, pairs ...string) (string, error) {
-	url, err := router.Get(name).URL(pairs...)
+	url, err := RouteUrl(name, pairs...)
 	if err != nil {
 		return "", err
 	}
-	return AbsolutePathUrl(url.String()), nil
+	return AbsolutePathUrl(url), nil
 }
 
 func AbsolutePathUrl(path string) string {

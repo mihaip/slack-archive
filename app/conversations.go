@@ -8,9 +8,9 @@ import (
 	"github.com/nlopes/slack"
 )
 
-func conversationHistoryUrl(c Conversation) string {
+func conversationArchiveUrl(c Conversation) string {
 	conversationType, ref := c.ToRef()
-	url, _ := RouteUrl("history", "type", conversationType, "ref", ref)
+	url, _ := RouteUrl("conversation-archive", "type", conversationType, "ref", ref)
 	return url
 }
 
@@ -18,7 +18,7 @@ type Conversation interface {
 	Name() string
 	ToRef() (conversationType string, ref string)
 	InitFromRef(ref string, slackClient *slack.Client) error
-	HistoryUrl() string
+	ArchiveUrl() string
 	History(params slack.HistoryParameters, slackClient *slack.Client) (*slack.History, error)
 }
 
@@ -40,8 +40,8 @@ func (c *ChannelConversation) InitFromRef(ref string, slackClient *slack.Client)
 	return err
 }
 
-func (c *ChannelConversation) HistoryUrl() string {
-	return conversationHistoryUrl(c)
+func (c *ChannelConversation) ArchiveUrl() string {
+	return conversationArchiveUrl(c)
 }
 
 func (c *ChannelConversation) History(params slack.HistoryParameters, slackClient *slack.Client) (*slack.History, error) {
@@ -66,8 +66,8 @@ func (c *PrivateChannelConversation) InitFromRef(ref string, slackClient *slack.
 	return err
 }
 
-func (c *PrivateChannelConversation) HistoryUrl() string {
-	return conversationHistoryUrl(c)
+func (c *PrivateChannelConversation) ArchiveUrl() string {
+	return conversationArchiveUrl(c)
 }
 
 func (c *PrivateChannelConversation) History(params slack.HistoryParameters, slackClient *slack.Client) (*slack.History, error) {
@@ -110,8 +110,8 @@ func (c *DirectMessageConversation) InitFromRef(ref string, slackClient *slack.C
 	return nil
 }
 
-func (c *DirectMessageConversation) HistoryUrl() string {
-	return conversationHistoryUrl(c)
+func (c *DirectMessageConversation) ArchiveUrl() string {
+	return conversationArchiveUrl(c)
 }
 
 func (c *DirectMessageConversation) History(params slack.HistoryParameters, slackClient *slack.Client) (*slack.History, error) {
