@@ -2,8 +2,8 @@
 
 {{define "body"}}
 
-{{range .History.Messages}}
-  {{template "message" .}}
+{{range .MessageGroups}}
+  {{template "message-group" .}}
 {{end}}
 
 {{end}}

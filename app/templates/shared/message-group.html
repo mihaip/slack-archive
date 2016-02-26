@@ -1,0 +1,12 @@
+{{define "message-group"}}
+
+<div class="message-group">
+<p><b>{{.Author.Name}}</b></p>
+
+{{range .Messages}}
+  {{template "message" .}}
+{{end}}
+
+</div>
+
+{{end}}

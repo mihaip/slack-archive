@@ -1,8 +1,10 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 	"net/url"
+	"time"
 
 	"appengine"
 	"appengine/datastore"
@@ -201,14 +203,38 @@ func historyHandler(w http.ResponseWriter, r *http.Request, state *AppSignedInSt
 	if err != nil {
 		return SlackFetchError(err, "conversation")
 	}
-	params := slack.NewHistoryParameters()
-	history, err := conversation.History(params, state.SlackClient)
+
+	messages := make([]*slack.Message, 0)
+	now := time.Now().In(state.Account.TimezoneLocation)
+	digestStartTime := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location()).AddDate(0, 0, -1)
+	digestEndTime := digestStartTime.AddDate(0, 0, 1).Add(-time.Second)
+
+	params := slack.HistoryParameters{
+		Latest:    fmt.Sprintf("%d", digestEndTime.Unix()),
+		Oldest:    fmt.Sprintf("%d", digestStartTime.Unix()),
+		Count:     1000,
+		Inclusive: false,
+	}
+	for {
+		history, err := conversation.History(params, state.SlackClient)
+		if err != nil {
+			return SlackFetchError(err, "history")
+		}
+		for i := range history.Messages {
+			messages = append([]*slack.Message{&history.Messages[i]}, messages...)
+		}
+		if !history.HasMore {
+			break
+		}
+		params.Latest = history.Messages[len(history.Messages)-1].Timestamp
+	}
+	messageGroups, err := groupMessages(messages, state.SlackClient)
 	if err != nil {
-		return SlackFetchError(err, "history")
+		return SlackFetchError(err, "message groups")
 	}
 	var data = map[string]interface{}{
-		"Conversation": conversation,
-		"History":      history,
+		"Conversation":  conversation,
+		"MessageGroups": messageGroups,
 	}
 	return templates["conversation-history"].Render(w, data, state)
 }
