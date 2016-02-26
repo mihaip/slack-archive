@@ -62,3 +62,7 @@ body {
 .footer a {
   color: #779dc2;
 }
+
+li.conversation .purpose {
+  color: #999;
+}

@@ -16,6 +16,7 @@ func conversationArchiveUrl(c Conversation) string {
 
 type Conversation interface {
 	Name() string
+	Purpose() string
 	ToRef() (conversationType string, ref string)
 	InitFromRef(ref string, slackClient *slack.Client) error
 	ArchiveUrl() string
@@ -28,6 +29,10 @@ type ChannelConversation struct {
 
 func (c *ChannelConversation) Name() string {
 	return c.channel.Name
+}
+
+func (c *ChannelConversation) Purpose() string {
+	return c.channel.Purpose.Value
 }
 
 func (c *ChannelConversation) ToRef() (conversationType string, ref string) {
@@ -56,6 +61,10 @@ func (c *PrivateChannelConversation) Name() string {
 	return c.group.Name
 }
 
+func (c *PrivateChannelConversation) Purpose() string {
+	return c.group.Purpose.Value
+}
+
 func (c *PrivateChannelConversation) ToRef() (conversationType string, ref string) {
 	return "private-channel", c.group.ID
 }
@@ -81,6 +90,10 @@ type DirectMessageConversation struct {
 
 func (c *DirectMessageConversation) Name() string {
 	return c.user.Name
+}
+
+func (c *DirectMessageConversation) Purpose() string {
+	return ""
 }
 
 func (c *DirectMessageConversation) ToRef() (conversationType string, ref string) {

@@ -3,6 +3,9 @@
 {{define "conversation"}}
     <li class="conversation">
       <a href="{{.ArchiveUrl}}">{{.Name}}</a>
+      {{if .Purpose}}
+        <span class="purpose">{{.Purpose}}</span>
+      {{end}}
     </li>
 {{end}}
 
