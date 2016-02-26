@@ -173,23 +173,14 @@ func getConversations(slackClient *slack.Client, account *Account) (*Conversatio
 	}
 	conversations.DirectMessages = make([]Conversation, 0, len(ims))
 	if len(ims) > 0 {
-		// DMs only include user IDs, fetch all users in bulk so that we don't
-		// need to get them one at a time for each DM conversation.
-		users, err := slackClient.GetUsers()
+		userLookup, err := newUserLookup(slackClient)
 		if err != nil {
 			return nil, err
 		}
-		usersById := make(map[string]*slack.User)
-		for i := range users {
-			usersById[users[i].ID] = &users[i]
-		}
 		for i := range ims {
-			user, ok := usersById[ims[i].User]
-			if !ok {
-				user, err = slackClient.GetUserInfo(ims[i].User)
-				if err != nil {
-					return nil, err
-				}
+			user, err := userLookup.GetUser(ims[i].User)
+			if err != nil {
+				return nil, err
 			}
 			conversations.DirectMessages = append(conversations.DirectMessages, &DirectMessageConversation{&ims[i], user})
 		}
