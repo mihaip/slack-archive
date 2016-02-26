@@ -209,9 +209,9 @@ func conversationArchiveHandler(w http.ResponseWriter, r *http.Request, state *A
 	}
 
 	var data = map[string]interface{}{
-		"Conversation":  conversation,
-		"ConversationType": conversationType,
-		"ConversationRef": ref,
+		"Conversation":        conversation,
+		"ConversationType":    conversationType,
+		"ConversationRef":     ref,
 		"ConversationArchive": archive,
 	}
 	return templates["conversation-archive-page"].Render(w, data, state)
@@ -272,4 +272,3 @@ func sendConversationArchive(conversation Conversation, account *Account, c appe
 	err = mail.Send(c, archiveMessage)
 	return true, err
 }
-

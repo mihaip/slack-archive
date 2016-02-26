@@ -212,12 +212,13 @@ func getConversations(slackClient *slack.Client, account *Account) (*Conversatio
 }
 
 type ConversationArchive struct {
-	MessageGroups         []*MessageGroup
-	StartTime                time.Time
-	EndTime time.Time
+	MessageGroups []*MessageGroup
+	StartTime     time.Time
+	EndTime       time.Time
 }
 
-func newConversationArchive(conversation Conversation, slackClient *slack.Client, account *Account) (*ConversationArchive, error) {	messages := make([]*slack.Message, 0)
+func newConversationArchive(conversation Conversation, slackClient *slack.Client, account *Account) (*ConversationArchive, error) {
+	messages := make([]*slack.Message, 0)
 	now := time.Now().In(account.TimezoneLocation)
 	archiveStartTime := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location()).AddDate(0, 0, -1)
 	archiveEndTime := archiveStartTime.AddDate(0, 0, 1).Add(-time.Second)
@@ -247,7 +248,7 @@ func newConversationArchive(conversation Conversation, slackClient *slack.Client
 	}
 	return &ConversationArchive{
 		MessageGroups: messageGroups,
-		StartTime: archiveStartTime,
-		EndTime: archiveEndTime,
+		StartTime:     archiveStartTime,
+		EndTime:       archiveEndTime,
 	}, nil
 }
