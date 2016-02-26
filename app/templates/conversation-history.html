@@ -2,8 +2,12 @@
 
 {{define "body"}}
 
-{{range .MessageGroups}}
-  {{template "message-group" .}}
-{{end}}
+<form method="POST" action="{{routeUrl "send-conversation"}}">
+  <input type="hidden" name="conversation_type" value="{{.ConversationType}}">
+  <input type="hidden" name="conversation_ref" value="{{.ConversationRef}}">
+  <input type="submit" class="action-button" value="Send Mail">
+</form>
+
+{{template "conversation-archive" .ConversationArchive}}
 
 {{end}}

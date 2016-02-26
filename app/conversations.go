@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/nlopes/slack"
 )
@@ -195,4 +196,45 @@ func getConversations(slackClient *slack.Client, account *Account) (*Conversatio
 	conversations.AllConversations = append(conversations.AllConversations, conversations.MultiPartyDirectMessages...)
 
 	return conversations, nil
+}
+
+type ConversationArchive struct {
+	MessageGroups         []*MessageGroup
+	StartTime                time.Time
+	EndTime time.Time
+}
+
+func newConversationArchive(conversation Conversation, slackClient *slack.Client, account *Account) (*ConversationArchive, error) {	messages := make([]*slack.Message, 0)
+	now := time.Now().In(account.TimezoneLocation)
+	archiveStartTime := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location()).AddDate(0, 0, -1)
+	archiveEndTime := archiveStartTime.AddDate(0, 0, 1).Add(-time.Second)
+
+	params := slack.HistoryParameters{
+		Latest:    fmt.Sprintf("%d", archiveEndTime.Unix()),
+		Oldest:    fmt.Sprintf("%d", archiveStartTime.Unix()),
+		Count:     1000,
+		Inclusive: false,
+	}
+	for {
+		history, err := conversation.History(params, slackClient)
+		if err != nil {
+			return nil, err
+		}
+		for i := range history.Messages {
+			messages = append([]*slack.Message{&history.Messages[i]}, messages...)
+		}
+		if !history.HasMore {
+			break
+		}
+		params.Latest = history.Messages[len(history.Messages)-1].Timestamp
+	}
+	messageGroups, err := groupMessages(messages, slackClient, account.TimezoneLocation)
+	if err != nil {
+		return nil, err
+	}
+	return &ConversationArchive{
+		MessageGroups: messageGroups,
+		StartTime: archiveStartTime,
+		EndTime: archiveEndTime,
+	}, nil
 }

@@ -1,13 +1,14 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"net/http"
 	"net/url"
-	"time"
 
 	"appengine"
 	"appengine/datastore"
+	"appengine/mail"
 
 	"github.com/gorilla/mux"
 	"github.com/gorilla/sessions"
@@ -33,6 +34,7 @@ func init() {
 	router.Handle("/slack/callback", AppHandler(slackOAuthCallbackHandler)).Name("slack-callback")
 
 	router.Handle("/history/{type}/{ref}", SignedInAppHandler(historyHandler)).Name("history")
+	router.Handle("/send-conversation", SignedInAppHandler(sendConversationHandler)).Name("send-conversation").Methods("POST")
 
 	http.Handle("/", router)
 }
@@ -77,9 +79,6 @@ func indexHandler(w http.ResponseWriter, r *http.Request) *AppError {
 	if err != nil {
 		return SlackFetchError(err, "emails")
 	}
-
-	c.Warningf("conversations: %d", len(conversations.AllConversations))
-	c.Warningf("  channels: %d", len(conversations.Channels))
 
 	var settingsSummary = map[string]interface{}{
 		"Frequency":    account.Frequency,
@@ -204,37 +203,73 @@ func historyHandler(w http.ResponseWriter, r *http.Request, state *AppSignedInSt
 		return SlackFetchError(err, "conversation")
 	}
 
-	messages := make([]*slack.Message, 0)
-	now := time.Now().In(state.Account.TimezoneLocation)
-	digestStartTime := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location()).AddDate(0, 0, -1)
-	digestEndTime := digestStartTime.AddDate(0, 0, 1).Add(-time.Second)
-
-	params := slack.HistoryParameters{
-		Latest:    fmt.Sprintf("%d", digestEndTime.Unix()),
-		Oldest:    fmt.Sprintf("%d", digestStartTime.Unix()),
-		Count:     1000,
-		Inclusive: false,
-	}
-	for {
-		history, err := conversation.History(params, state.SlackClient)
-		if err != nil {
-			return SlackFetchError(err, "history")
-		}
-		for i := range history.Messages {
-			messages = append([]*slack.Message{&history.Messages[i]}, messages...)
-		}
-		if !history.HasMore {
-			break
-		}
-		params.Latest = history.Messages[len(history.Messages)-1].Timestamp
-	}
-	messageGroups, err := groupMessages(messages, state.SlackClient, state.Account.TimezoneLocation)
+	archive, err := newConversationArchive(conversation, state.SlackClient, state.Account)
 	if err != nil {
-		return SlackFetchError(err, "message groups")
+		return SlackFetchError(err, "archive")
 	}
+
 	var data = map[string]interface{}{
 		"Conversation":  conversation,
-		"MessageGroups": messageGroups,
+		"ConversationType": conversationType,
+		"ConversationRef": ref,
+		"ConversationArchive": archive,
 	}
 	return templates["conversation-history"].Render(w, data, state)
 }
+
+func sendConversationHandler(w http.ResponseWriter, r *http.Request, state *AppSignedInState) *AppError {
+	conversationType := r.FormValue("conversation_type")
+	ref := r.FormValue("conversation_ref")
+	conversation, err := getConversationFromRef(conversationType, ref, state.SlackClient)
+	if err != nil {
+		return SlackFetchError(err, "conversation")
+	}
+	c := appengine.NewContext(r)
+	sent, err := sendArchiveForConversation(conversation, state.Account, c)
+	if err != nil {
+		return InternalError(err, "Could not send digest")
+	}
+	if sent {
+		state.AddFlash("Emailed archive!")
+	} else {
+		state.AddFlash("No archive was sent, it was empty or disabled.")
+	}
+	return RedirectToRoute("history", "type", conversationType, "ref", ref)
+}
+
+func sendArchiveForConversation(conversation Conversation, account *Account, c appengine.Context) (bool, error) {
+	slackClient := slack.New(account.ApiToken)
+	emailAddress, err := account.GetDigestEmailAddress(slackClient)
+	if err != nil {
+		return false, err
+	}
+	if emailAddress == "disabled" {
+		return false, nil
+	}
+	archive, err := newConversationArchive(conversation, slackClient, account)
+	if err != nil {
+		return false, err
+	}
+	var data = map[string]interface{}{
+		"ConversationArchive": archive,
+	}
+	var archiveHtml bytes.Buffer
+	if err := templates["conversation-archive-email"].Execute(&archiveHtml, data); err != nil {
+		return false, err
+	}
+	team, err := slackClient.GetTeamInfo()
+	if err != nil {
+		return false, err
+	}
+	sender := fmt.Sprintf(
+		"%s Slack Archive <archive@slack-archive.appspotmail.com>", team.Name)
+	archiveMessage := &mail.Message{
+		Sender:   sender,
+		To:       []string{emailAddress},
+		Subject:  fmt.Sprintf("%s Archive", conversation.Name()),
+		HTMLBody: archiveHtml.String(),
+	}
+	err = mail.Send(c, archiveMessage)
+	return true, err
+}
+

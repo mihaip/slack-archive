@@ -102,31 +102,39 @@ func BadRequest(err error, message string) *AppError {
 	}
 }
 
-func RedirectToRoute(routeName string, queryParameters ...map[string]string) *AppError {
+func RedirectToRoute(routeName string, pairs ...string) *AppError {
+	routeUrl, err := RouteUrl(routeName, pairs...)
+	if err != nil {
+		return InternalError(
+			errors.New("No such route"),
+			fmt.Sprintf("Could not look up route '%s': %s", routeName, err))
+	}
+	return RedirectToUrl(routeUrl)
+}
+
+func RedirectToRouteWithQueryParameters(routeName string, queryParameters map[string]string, pairs ...string) *AppError {
 	route := router.Get(routeName)
 	if route == nil {
 		return InternalError(
 			errors.New("No such route"),
 			fmt.Sprintf("Could not look up route '%s'", routeName))
 	}
-	routeUrl, err := route.URL()
+	routeUrl, err := route.URL(pairs...)
 	if err != nil {
 		return InternalError(
 			errors.New("Could not get route URL"),
 			fmt.Sprintf("Could not get route URL for route '%s'", routeName))
 	}
-	if len(queryParameters) != 0 {
-		routeUrlQuery := routeUrl.Query()
-		for k, v := range queryParameters[0] {
-			routeUrlQuery.Set(k, v)
-		}
-		routeUrl.RawQuery = routeUrlQuery.Encode()
+	routeUrlQuery := routeUrl.Query()
+	for k, v := range queryParameters {
+		routeUrlQuery.Set(k, v)
 	}
+	routeUrl.RawQuery = routeUrlQuery.Encode()
 	return RedirectToUrl(routeUrl.String())
 }
 
 func NotSignedIn(r *http.Request) *AppError {
-	return RedirectToRoute("index", map[string]string{"continue_url": r.URL.String()})
+	return RedirectToRouteWithQueryParameters("index", map[string]string{"continue_url": r.URL.String()})
 }
 
 func Panic(panicData interface{}) *AppError {
