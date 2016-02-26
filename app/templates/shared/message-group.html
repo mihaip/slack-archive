@@ -1,12 +1,13 @@
 {{define "message-group"}}
 
-<div class="message-group">
-<p><b>{{.Author.Name}}</b></p>
-
-{{range .Messages}}
-  {{template "message" .}}
-{{end}}
-
+<div style="{{style "message-group"}}">
+  <img src="{{.Author.Profile.Image72}}" style="{{style "message-group.author-image"}}" width="36" height="36">
+  <b>{{.Author.Name}}</b>
+  <span style="{{style "message-group.timestamp"}}">{{.DisplayTimestamp}}</span>
+  <div style="{{style "message-group.body"}}">
+    {{range .Messages}}
+      {{template "message" .}}
+    {{end}}
+  </div>
 </div>
-
 {{end}}

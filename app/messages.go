@@ -1,11 +1,16 @@
 package main
 
 import (
+	"bytes"
 	"log"
 	"strconv"
 	"time"
 
 	"github.com/nlopes/slack"
+)
+
+const (
+	MessageGroupDisplayTimestampFormat = "3:04pm"
 )
 
 type Message struct {
@@ -24,6 +29,29 @@ func (m *Message) TimestampTime() time.Time {
 type MessageGroup struct {
 	Messages []*Message
 	Author   *slack.User
+}
+
+func safeFormattedDate(date string) string {
+	// Insert zero-width spaces every few characters so that Apple Data
+	// Detectors and Gmail's calendar event dection don't pick up on these
+	// dates.
+	var buffer bytes.Buffer
+	dateLength := len(date)
+	for i := 0; i < dateLength; i += 2 {
+		if i == dateLength-1 {
+			buffer.WriteString(date[i : i+1])
+		} else {
+			buffer.WriteString(date[i : i+2])
+			if date[i] != ' ' && date[i+1] != ' ' && i < dateLength-2 {
+				buffer.WriteString("\u200b")
+			}
+		}
+	}
+	return buffer.String()
+}
+
+func (mg *MessageGroup) DisplayTimestamp() string {
+	return safeFormattedDate(mg.Messages[len(mg.Messages)-1].TimestampTime().Format(MessageGroupDisplayTimestampFormat))
 }
 
 func groupMessages(messages []*slack.Message, slackClient *slack.Client) ([]*MessageGroup, error) {

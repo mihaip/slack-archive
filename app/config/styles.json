@@ -1,1 +1,20 @@
-{}
+{
+  "message-group": {
+    "margin": "4px 0",
+    "author-image": {
+      "float": "left",
+      "padding-right": "10px"
+    },
+    "body": {
+      "overflow": "hidden",
+      "line-height": "18px"
+    },
+    "timestamp": {
+      "color": "#9e9ea6",
+      "font-size": "9pt"
+    }
+  },
+  "message": {
+    "margin": "2px 0"
+  }
+}
