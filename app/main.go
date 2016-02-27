@@ -8,6 +8,7 @@ import (
 
 	"appengine"
 	"appengine/datastore"
+	"appengine/delay"
 	"appengine/mail"
 
 	"github.com/gorilla/mux"
@@ -33,9 +34,10 @@ func init() {
 	router.Handle("/session/sign-out", AppHandler(signOutHandler)).Name("sign-out").Methods("POST")
 	router.Handle("/slack/callback", AppHandler(slackOAuthCallbackHandler)).Name("slack-callback")
 
-	router.Handle("/send-archive", SignedInAppHandler(sendArchiveHandler)).Name("send-archive").Methods("POST")
-	router.Handle("/archive/{type}/{ref}", SignedInAppHandler(conversationArchiveHandler)).Name("conversation-archive")
-	router.Handle("/send-conversation", SignedInAppHandler(sendConversationArchiveHandler)).Name("send-conversation-archive").Methods("POST")
+	router.Handle("/archive/send", SignedInAppHandler(sendArchiveHandler)).Name("send-archive").Methods("POST")
+	router.Handle("/archive/cron", AppHandler(archiveCronHandler))
+	router.Handle("/archive/conversation/send", SignedInAppHandler(sendConversationArchiveHandler)).Name("send-conversation-archive").Methods("POST")
+	router.Handle("/archive/conversation/{type}/{ref}", SignedInAppHandler(conversationArchiveHandler)).Name("conversation-archive")
 
 	http.Handle("/", router)
 }
@@ -236,6 +238,43 @@ func sendArchiveHandler(w http.ResponseWriter, r *http.Request, state *AppSigned
 	return RedirectToRoute("index")
 }
 
+func archiveCronHandler(w http.ResponseWriter, r *http.Request) *AppError {
+	c := appengine.NewContext(r)
+	accounts, err := getAllAccounts(c)
+	if err != nil {
+		return InternalError(err, "Could not look up accounts")
+	}
+	for _, account := range accounts {
+		c.Infof("Enqueing task for %s...", account.SlackUserId)
+		sendArchiveFunc.Call(c, account.SlackUserId)
+	}
+	fmt.Fprint(w, "Done")
+	return nil
+}
+
+var sendArchiveFunc = delay.Func(
+	"sendArchive",
+	func(c appengine.Context, slackUserId string) error {
+		c.Infof("Sending digest for %d...", slackUserId)
+		account, err := getAccount(c, slackUserId)
+		if err != nil {
+			c.Errorf("  Error looking up account: %s", err.Error())
+			return err
+		}
+		sentCount, err := sendArchive(account, c)
+		if err != nil {
+			c.Errorf("  Error: %s", err.Error())
+			if !appengine.IsDevAppServer() {
+				sendArchiveErrorMail(err, c, slackUserId)
+			}
+		} else if sentCount > 0 {
+			c.Infof(fmt.Sprintf("  Sent %d archives!", sentCount))
+		} else {
+			c.Infof("  Not sent, archive was empty")
+		}
+		return err
+	})
+
 func sendArchive(account *Account, c appengine.Context) (int, error) {
 	slackClient := slack.New(account.ApiToken)
 	conversations, err := getConversations(slackClient, account)
@@ -253,6 +292,19 @@ func sendArchive(account *Account, c appengine.Context) (int, error) {
 		}
 	}
 	return sentCount, nil
+}
+
+func sendArchiveErrorMail(e error, c appengine.Context, slackUserId string) {
+	errorMessage := &mail.Message{
+		Sender:  "Slack Archive Admin <admin@slack-archive.appspot.com>",
+		To:      []string{"mihai.parparita@gmail.com"},
+		Subject: fmt.Sprintf("Slack Archive Send Error for %s", slackUserId),
+		Body:    fmt.Sprintf("Error: %s", e),
+	}
+	err := mail.Send(c, errorMessage)
+	if err != nil {
+		c.Errorf("Error %s sending error email.", err.Error())
+	}
 }
 
 func sendConversationArchiveHandler(w http.ResponseWriter, r *http.Request, state *AppSignedInState) *AppError {

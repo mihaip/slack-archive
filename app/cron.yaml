@@ -1,0 +1,4 @@
+cron:
+- url: /archive/cron
+  schedule: every day 13:00
+  timezone: America/Los_Angeles
