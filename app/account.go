@@ -19,7 +19,6 @@ type Account struct {
 	TimezoneLocation   *time.Location `datastore:"-,"`
 	HasTimezoneSet     bool           `datastore:"-,"`
 	DigestEmailAddress string         `datastore:",noindex"`
-	Frequency          string         `datastore:",noindex"`
 }
 
 func getAccount(c appengine.Context, slackUserId string) (*Account, error) {
@@ -41,9 +40,6 @@ func initAccount(account *Account) error {
 	account.HasTimezoneSet = len(account.TimezoneName) > 0
 	if !account.HasTimezoneSet {
 		account.TimezoneName = "America/Los_Angeles"
-	}
-	if len(account.Frequency) == 0 {
-		account.Frequency = "daily"
 	}
 	var err error
 	account.TimezoneLocation, err = time.LoadLocation(account.TimezoneName)
