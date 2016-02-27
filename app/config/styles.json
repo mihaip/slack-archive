@@ -1,4 +1,14 @@
 {
+  "conversation": {
+    "hash": {
+      "opacity": "0.5",
+      "padding-right": ".2ex"
+    },
+    "user-image": {
+      "vertical-align": "text-bottom",
+      "padding-right": ".2ex"
+    }
+  },
   "message-group": {
     "margin": "4px 0",
     "author-image": {

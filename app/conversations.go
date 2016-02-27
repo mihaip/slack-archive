@@ -36,7 +36,8 @@ func (c *ChannelConversation) Name() string {
 
 func (c *ChannelConversation) NameHtml() template.HTML {
 	return template.HTML(fmt.Sprintf(
-		"<span style='opacity:0.5;padding-right:.2ex' class='hash'>#</span>%s",
+		"<span style='%s' class='hash'>#</span>%s",
+		Style("conversation.hash"),
 		html.EscapeString(c.channel.Name)))
 }
 
@@ -72,7 +73,8 @@ func (c *PrivateChannelConversation) Name() string {
 
 func (c *PrivateChannelConversation) NameHtml() template.HTML {
 	return template.HTML(fmt.Sprintf(
-		"<span style='opacity:0.5;padding-right:.2ex' class='hash'>#</span>%s",
+		"<span style='%s' class='hash'>#</span>%s",
+		Style("conversation.hash"),
 		html.EscapeString(c.group.Name)))
 }
 
@@ -109,9 +111,9 @@ func (c *DirectMessageConversation) Name() string {
 
 func (c *DirectMessageConversation) NameHtml() template.HTML {
 	imageHtml := fmt.Sprintf(
-		"<img src='%s' width='36' height='36' class='user-image' "+
-			"style='vertical-align:text-bottom;padding-right:.2ex'>",
-		c.user.Profile.Image72)
+		"<img src='%s' width='36' height='36' class='user-image' style='%s'>",
+		c.user.Profile.Image72,
+		Style("conversation.user-image"))
 	return template.HTML(fmt.Sprintf(
 		"%s%s", imageHtml, html.EscapeString(c.user.Name)))
 }
