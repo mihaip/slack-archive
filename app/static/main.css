@@ -5,6 +5,15 @@ body {
   padding: 0;
 }
 
+a {
+  color: #4183c4;
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
 .header {
   position: relative;
   height: 164px;
@@ -26,6 +35,31 @@ body {
 
 .body h1:empty {
   display: none;
+}
+
+form.inline {
+  display: inline;
+}
+
+input[type="submit"].inline {
+  -webkit-appearance: none;
+  display: inline;
+  background: transparent;
+  padding: 0;
+  border: 0;
+  font-family: Helvetica, Arial, sans-serif;
+  font-size: inherit;
+  color: #4183c4;
+  cursor: pointer;
+}
+
+input[type="submit"].inline:hover {
+  text-decoration: underline;
+}
+
+input[type="submit"].inline.destructive {
+  text-decoration: underline;
+  color: #900;
 }
 
 .flash {

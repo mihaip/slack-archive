@@ -12,7 +12,8 @@
 {{define "body"}}
 
 <div class="blurb">
-  You're signed in as {{.User.Name}} from <a href="https://{{.Team.Domain}}.slack.com/">{{.Team.Name}}</a>.
+  You're signed in as {{.User.Name}} from <a href="https://{{.Team.Domain}}.slack.com/">{{.Team.Name}}</a>
+  (<form class="inline" method="POST" action="{{routeUrl "sign-out"}}"><input type="submit" class="inline" value="sign out"></form>).
 </div>
 
 <form method="POST" action="{{routeUrl "send-archive"}}">
