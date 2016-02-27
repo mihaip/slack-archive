@@ -267,7 +267,7 @@ var sendArchiveFunc = delay.Func(
 				sendArchiveErrorMail(err, c, slackUserId)
 			}
 		} else if sentCount > 0 {
-			 c.Infof(fmt.Sprintf("  Sent %d archives!", sentCount))
+			c.Infof(fmt.Sprintf("  Sent %d archives!", sentCount))
 		} else {
 			c.Infof("  Not sent, archive was empty")
 		}

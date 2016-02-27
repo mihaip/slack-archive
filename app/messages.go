@@ -2,8 +2,11 @@ package main
 
 import (
 	"bytes"
+	"html"
+	"html/template"
 	"log"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/nlopes/slack"
@@ -25,6 +28,15 @@ func (m *Message) TimestampTime() time.Time {
 		return time.Time{}
 	}
 	return time.Unix(int64(floatTimestamp), 0).In(m.timezoneLocation)
+}
+
+func (m *Message) TextHtml() template.HTML {
+	lines := strings.Split(m.Text, "\n")
+	htmlLines := []string{}
+	for _, line := range lines {
+		htmlLines = append(htmlLines, html.EscapeString(line))
+	}
+	return template.HTML(strings.Join(htmlLines, "<br>"))
 }
 
 type MessageGroup struct {
