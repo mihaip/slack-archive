@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"html/template"
 	"net/http"
 	"net/url"
 
@@ -20,9 +21,11 @@ var router *mux.Router
 var slackOAuthConfig OAuthConfig
 var sessionStore *sessions.CookieStore
 var sessionConfig SessionConfig
+var styles map[string]template.CSS
 var templates map[string]*Template
 
 func init() {
+	styles = loadStyles()
 	templates = loadTemplates()
 	sessionStore, sessionConfig = initSession()
 	slackOAuthConfig = initSlackOAuthConfig()

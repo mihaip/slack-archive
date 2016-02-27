@@ -15,6 +15,11 @@
     }
   },
   "message": {
-    "margin": "2px 0"
+    "margin": "2px 0",
+    "blockquote": {
+      "border-left": "solid 4px #ddd",
+      "padding-left": "1ex",
+      "margin": "0"
+    }
   }
 }

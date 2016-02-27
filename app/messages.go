@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"fmt"
 	"html"
 	"html/template"
 	"log"
@@ -14,6 +15,7 @@ import (
 
 const (
 	MessageGroupDisplayTimestampFormat = "3:04pm"
+	MessageTextBlockquotePrefix        = "&gt;"
 )
 
 type Message struct {
@@ -32,11 +34,24 @@ func (m *Message) TimestampTime() time.Time {
 
 func (m *Message) TextHtml() template.HTML {
 	lines := strings.Split(m.Text, "\n")
-	htmlLines := []string{}
+	htmlPieces := []string{}
 	for _, line := range lines {
-		htmlLines = append(htmlLines, html.EscapeString(line))
+		var htmlLine string
+		if strings.HasPrefix(line, MessageTextBlockquotePrefix) {
+			line := strings.TrimPrefix(line, MessageTextBlockquotePrefix)
+			if line == "" {
+				// Ensure that even empty blockquote lines get rendered.
+				line = "\u200b"
+			}
+			htmlLine = fmt.Sprintf("<blockquote style='%s'>%s</blockquote>",
+				Style("message.blockquote"),
+				html.EscapeString(line))
+		} else {
+			htmlLine = fmt.Sprintf("%s<br>", html.EscapeString(line))
+		}
+		htmlPieces = append(htmlPieces, htmlLine)
 	}
-	return template.HTML(strings.Join(htmlLines, "<br>"))
+	return template.HTML(strings.Join(htmlPieces, ""))
 }
 
 type MessageGroup struct {

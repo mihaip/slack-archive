@@ -320,7 +320,6 @@ func AbsolutePathUrl(path string) string {
 }
 
 func loadTemplates() (templates map[string]*Template) {
-	styles := loadStyles()
 	funcMap := template.FuncMap{
 		"routeUrl": func(name string, pairs ...string) (string, error) {
 			return RouteUrl(name, pairs...)
@@ -331,11 +330,8 @@ func loadTemplates() (templates map[string]*Template) {
 		"absoluteUrlForPath": func(path string) string {
 			return AbsolutePathUrl(path)
 		},
-		"style": func(names ...string) (result template.CSS) {
-			for _, name := range names {
-				result += styles[name]
-			}
-			return
+		"style": func(names ...string) template.CSS {
+			return Style(names...)
 		},
 	}
 	sharedFileNames, err := filepath.Glob("templates/shared/*.html")
@@ -399,5 +395,12 @@ func loadStyles() (result map[string]template.CSS) {
 		}
 	}
 	parse("", stylesJson.(map[string]interface{}), nil)
+	return
+}
+
+func Style(names ...string) (result template.CSS) {
+	for _, name := range names {
+		result += styles[name]
+	}
 	return
 }
