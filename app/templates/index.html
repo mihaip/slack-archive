@@ -2,7 +2,7 @@
 
 {{define "conversation"}}
     <li class="conversation">
-      <a href="{{.ArchiveUrl}}">{{.Name}}</a>
+      <a href="{{.ArchiveUrl}}">{{.NameHtml}}</a>
       {{if .Purpose}}
         <span class="purpose">{{.Purpose}}</span>
       {{end}}
@@ -19,7 +19,7 @@
 {{if .Conversations.Channels}}
   <h2>Channels</h2>
 
-  <ul>
+  <ul class="conversation-list">
     {{range .Conversations.Channels}}
       {{template "conversation" .}}
     {{end}}
@@ -29,7 +29,7 @@
 {{if .Conversations.PrivateChannels}}
   <h2>Private Channels</h2>
 
-  <ul>
+  <ul class="conversation-list">
     {{range .Conversations.PrivateChannels}}
       {{template "conversation" .}}
     {{end}}
@@ -39,7 +39,7 @@
 {{if or .Conversations.DirectMessages .Conversations.MultiPartyDirectMessages}}
   <h2>Direct Messages</h2>
 
-  <ul>
+  <ul class="conversation-list">
     {{range .Conversations.DirectMessages}}
       {{template "conversation" .}}
     {{end}}

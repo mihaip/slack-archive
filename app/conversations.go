@@ -3,6 +3,8 @@ package main
 import (
 	"errors"
 	"fmt"
+	"html"
+	"html/template"
 	"time"
 
 	"github.com/nlopes/slack"
@@ -16,6 +18,7 @@ func conversationArchiveUrl(c Conversation) string {
 
 type Conversation interface {
 	Name() string
+	NameHtml() template.HTML
 	Purpose() string
 	ToRef() (conversationType string, ref string)
 	InitFromRef(ref string, slackClient *slack.Client) error
@@ -28,7 +31,13 @@ type ChannelConversation struct {
 }
 
 func (c *ChannelConversation) Name() string {
-	return c.channel.Name
+	return fmt.Sprintf("#%s", c.channel.Name)
+}
+
+func (c *ChannelConversation) NameHtml() template.HTML {
+	return template.HTML(fmt.Sprintf(
+		"<span style='opacity:0.5;padding-right:.2ex' class='hash'>#</span>%s",
+		html.EscapeString(c.channel.Name)))
 }
 
 func (c *ChannelConversation) Purpose() string {
@@ -58,7 +67,13 @@ type PrivateChannelConversation struct {
 }
 
 func (c *PrivateChannelConversation) Name() string {
-	return c.group.Name
+	return fmt.Sprintf("#%s", c.group.Name)
+}
+
+func (c *PrivateChannelConversation) NameHtml() template.HTML {
+	return template.HTML(fmt.Sprintf(
+		"<span style='opacity:0.5;padding-right:.2ex' class='hash'>#</span>%s",
+		html.EscapeString(c.group.Name)))
 }
 
 func (c *PrivateChannelConversation) Purpose() string {
@@ -90,6 +105,15 @@ type DirectMessageConversation struct {
 
 func (c *DirectMessageConversation) Name() string {
 	return c.user.Name
+}
+
+func (c *DirectMessageConversation) NameHtml() template.HTML {
+	imageHtml := fmt.Sprintf(
+		"<img src='%s' width='36' height='36' class='user-image' "+
+			"style='vertical-align:text-bottom;padding-right:.2ex'>",
+		c.user.Profile.Image72)
+	return template.HTML(fmt.Sprintf(
+		"%s%s", imageHtml, html.EscapeString(c.user.Name)))
 }
 
 func (c *DirectMessageConversation) Purpose() string {
@@ -192,11 +216,15 @@ func getConversations(slackClient *slack.Client, account *Account) (*Conversatio
 			return nil, err
 		}
 		for i := range ims {
-			user, err := userLookup.GetUser(ims[i].User)
+			im := &ims[i]
+			if im.IsUserDeleted {
+				continue
+			}
+			user, err := userLookup.GetUser(im.User)
 			if err != nil {
 				return nil, err
 			}
-			conversations.DirectMessages = append(conversations.DirectMessages, &DirectMessageConversation{&ims[i], user})
+			conversations.DirectMessages = append(conversations.DirectMessages, &DirectMessageConversation{im, user})
 		}
 	}
 
