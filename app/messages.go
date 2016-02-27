@@ -3,9 +3,9 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"html"
 	"html/template"
 	"log"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -16,6 +16,7 @@ import (
 const (
 	MessageGroupDisplayTimestampFormat = "3:04pm"
 	MessageTextBlockquotePrefix        = "&gt;"
+	MessageTextControlRegexp           = "<(.*?)>"
 )
 
 type Message struct {
@@ -35,21 +36,40 @@ func (m *Message) TimestampTime() time.Time {
 func (m *Message) TextHtml() template.HTML {
 	lines := strings.Split(m.Text, "\n")
 	htmlPieces := []string{}
+	controlRegexp := regexp.MustCompile(MessageTextControlRegexp)
 	for _, line := range lines {
-		var htmlLine string
+		linePrefix := ""
+		lineSuffix := ""
 		if strings.HasPrefix(line, MessageTextBlockquotePrefix) {
-			line := strings.TrimPrefix(line, MessageTextBlockquotePrefix)
+			line = strings.TrimPrefix(line, MessageTextBlockquotePrefix)
 			if line == "" {
 				// Ensure that even empty blockquote lines get rendered.
 				line = "\u200b"
 			}
-			htmlLine = fmt.Sprintf("<blockquote style='%s'>%s</blockquote>",
-				Style("message.blockquote"),
-				html.EscapeString(line))
+			linePrefix = fmt.Sprintf("<blockquote style='%s'>",
+				Style("message.blockquote"))
+			lineSuffix = "</blockquote>"
 		} else {
-			htmlLine = fmt.Sprintf("%s<br>", html.EscapeString(line))
+			lineSuffix = "<br>"
 		}
-		htmlPieces = append(htmlPieces, htmlLine)
+		line = controlRegexp.ReplaceAllStringFunc(line, func(control string) string {
+			control = control[1 : len(control)-1]
+			anchorText := ""
+			pipeIndex := strings.LastIndex(control, "|")
+			if pipeIndex != -1 {
+				anchorText = control[pipeIndex+1:]
+				control = control[:pipeIndex]
+			}
+			if anchorText == "" {
+				anchorText = control
+			}
+			return fmt.Sprintf("<a href='%s'>%s</a>", control, anchorText)
+		})
+
+		htmlPieces = append(htmlPieces, linePrefix)
+		// Slack's API claims that all HTML is already escaped
+		htmlPieces = append(htmlPieces, line)
+		htmlPieces = append(htmlPieces, lineSuffix)
 	}
 	return template.HTML(strings.Join(htmlPieces, ""))
 }
