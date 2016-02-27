@@ -245,6 +245,15 @@ type ConversationArchive struct {
 	EndTime       time.Time
 }
 
+func (archive *ConversationArchive) Empty() bool {
+	for i := range archive.MessageGroups {
+		if len(archive.MessageGroups[i].Messages) > 0 {
+			return false
+		}
+	}
+	return true
+}
+
 func newConversationArchive(conversation Conversation, slackClient *slack.Client, account *Account) (*ConversationArchive, error) {
 	messages := make([]*slack.Message, 0)
 	now := time.Now().In(account.TimezoneLocation)

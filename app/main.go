@@ -288,6 +288,9 @@ func sendConversationArchive(conversation Conversation, account *Account, c appe
 	if err != nil {
 		return false, err
 	}
+	if archive.Empty() {
+		return false, nil
+	}
 	var data = map[string]interface{}{
 		"ConversationArchive": archive,
 	}
