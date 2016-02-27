@@ -33,6 +33,7 @@ func init() {
 	router.Handle("/session/sign-out", AppHandler(signOutHandler)).Name("sign-out").Methods("POST")
 	router.Handle("/slack/callback", AppHandler(slackOAuthCallbackHandler)).Name("slack-callback")
 
+	router.Handle("/send-archive", SignedInAppHandler(sendArchiveHandler)).Name("send-archive").Methods("POST")
 	router.Handle("/archive/{type}/{ref}", SignedInAppHandler(conversationArchiveHandler)).Name("conversation-archive")
 	router.Handle("/send-conversation", SignedInAppHandler(sendConversationArchiveHandler)).Name("send-conversation-archive").Methods("POST")
 
@@ -217,6 +218,43 @@ func conversationArchiveHandler(w http.ResponseWriter, r *http.Request, state *A
 	return templates["conversation-archive-page"].Render(w, data, state)
 }
 
+func sendArchiveHandler(w http.ResponseWriter, r *http.Request, state *AppSignedInState) *AppError {
+	c := appengine.NewContext(r)
+	sentCount, err := sendArchive(state.Account, c)
+	if err != nil {
+		return InternalError(err, "Could not send archive")
+	}
+	if sentCount > 0 {
+		if sentCount == 1 {
+			state.AddFlash("Emailed 1 archive!")
+		} else {
+			state.AddFlash(fmt.Sprintf("Emailed %d archives!", sentCount))
+		}
+	} else {
+		state.AddFlash("No archives were sent, they were either all empty or disabled.")
+	}
+	return RedirectToRoute("index")
+}
+
+func sendArchive(account *Account, c appengine.Context) (int, error) {
+	slackClient := slack.New(account.ApiToken)
+	conversations, err := getConversations(slackClient, account)
+	if err != nil {
+		return 0, err
+	}
+	sentCount := 0
+	for _, conversation := range conversations.AllConversations {
+		sent, err := sendConversationArchive(conversation, account, c)
+		if err != nil {
+			return sentCount, nil
+		}
+		if sent {
+			sentCount++
+		}
+	}
+	return sentCount, nil
+}
+
 func sendConversationArchiveHandler(w http.ResponseWriter, r *http.Request, state *AppSignedInState) *AppError {
 	conversationType := r.FormValue("conversation_type")
 	ref := r.FormValue("conversation_ref")
@@ -227,7 +265,7 @@ func sendConversationArchiveHandler(w http.ResponseWriter, r *http.Request, stat
 	c := appengine.NewContext(r)
 	sent, err := sendConversationArchive(conversation, state.Account, c)
 	if err != nil {
-		return InternalError(err, "Could not send digest")
+		return InternalError(err, "Could not send conversation archive")
 	}
 	if sent {
 		state.AddFlash("Emailed archive!")

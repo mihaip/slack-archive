@@ -15,6 +15,9 @@
   You're signed in as {{.User.Name}} from <a href="https://{{.Team.Domain}}.slack.com/">{{.Team.Name}}</a>.
 </div>
 
+<form method="POST" action="{{routeUrl "send-archive"}}">
+  <input type="submit" class="action-button" value="Send Archive">
+</form>
 
 {{if .Conversations.Channels}}
   <h2>Channels</h2>
