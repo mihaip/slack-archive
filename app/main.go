@@ -261,7 +261,7 @@ func archiveCronHandler(w http.ResponseWriter, r *http.Request) *AppError {
 var sendArchiveFunc = delay.Func(
 	"sendArchive",
 	func(c appengine.Context, slackUserId string) error {
-		c.Infof("Sending digest for %d...", slackUserId)
+		c.Infof("Sending digest for %s...", slackUserId)
 		account, err := getAccount(c, slackUserId)
 		if err != nil {
 			c.Errorf("  Error looking up account: %s", err.Error())
@@ -302,7 +302,7 @@ func sendArchive(account *Account, c appengine.Context) (int, error) {
 
 func sendArchiveErrorMail(e error, c appengine.Context, slackUserId string) {
 	errorMessage := &mail.Message{
-		Sender:  "Slack Archive Admin <admin@slack-archive.appspot.com>",
+		Sender:  "Slack Archive Admin <admin@slack-archive.appspotmail.com>",
 		To:      []string{"mihai.parparita@gmail.com"},
 		Subject: fmt.Sprintf("Slack Archive Send Error for %s", slackUserId),
 		Body:    fmt.Sprintf("Error: %s", e),
