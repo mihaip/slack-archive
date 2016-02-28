@@ -6,11 +6,13 @@ import (
 	"html/template"
 	"net/http"
 	"net/url"
+	"time"
 
 	"appengine"
 	"appengine/datastore"
 	"appengine/delay"
 	"appengine/mail"
+	"appengine/urlfetch"
 
 	"github.com/gorilla/mux"
 	"github.com/gorilla/sessions"
@@ -266,6 +268,15 @@ var sendArchiveFunc = delay.Func(
 		if err != nil {
 			c.Errorf("  Error looking up account: %s", err.Error())
 			return err
+		}
+		// The Slack API uses the default HTTP transport, so we need to override
+		// it to get it to work on App Engine. This is normally done for all
+		// handlers, but since we're in a delay function that code has not run.
+		appengineTransport := &urlfetch.Transport{Context: c}
+		appengineTransport.Deadline = time.Second * 60
+		http.DefaultTransport = &CachingTransport{
+			Transport: appengineTransport,
+			Context:   c,
 		}
 		sentCount, err := sendArchive(account, c)
 		if err != nil {
