@@ -302,7 +302,7 @@ func sendArchive(account *Account, c appengine.Context) (int, error) {
 	for _, conversation := range conversations.AllConversations {
 		sent, err := sendConversationArchive(conversation, account, c)
 		if err != nil {
-			return sentCount, nil
+			return sentCount, err
 		}
 		if sent {
 			sentCount++
