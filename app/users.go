@@ -9,7 +9,7 @@ import (
 
 const (
 	SyntheticUserImageUrlTemplate = "https://i1.wp.com/slack.global.ssl.fastly.net/66f9/img/avatars/ava_0025-%d.png?ssl=1"
-	SyntheticBotUserImageUrl = "https://slack.global.ssl.fastly.net/66f9/img/default_application_icon.png"
+	SyntheticBotUserImageUrl      = "https://slack.global.ssl.fastly.net/66f9/img/default_application_icon.png"
 )
 
 type UserLookup struct {
