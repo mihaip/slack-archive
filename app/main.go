@@ -278,18 +278,70 @@ var sendArchiveFunc = delay.Func(
 			Transport: appengineTransport,
 			Context:   c,
 		}
-		sentCount, err := sendArchive(account, c)
+		slackClient := slack.New(account.ApiToken)
+		conversations, err := getConversations(slackClient, account)
 		if err != nil {
-			c.Errorf("  Error: %s", err.Error())
+			c.Errorf("  Error looking up conversations: %s", err.Error())
 			if !appengine.IsDevAppServer() {
 				sendArchiveErrorMail(err, c, slackUserId)
 			}
-		} else if sentCount > 0 {
-			c.Infof(fmt.Sprintf("  Sent %d archives!", sentCount))
-		} else {
-			c.Infof("  Not sent, archive was empty")
+			return err
 		}
-		return err
+		if len(conversations.AllConversations) > 0 {
+			for _, conversation := range conversations.AllConversations {
+				conversationType, ref := conversation.ToRef()
+				sendConversationArchiveFunc.Call(
+					c, account.SlackUserId, conversationType, ref)
+			}
+			c.Infof("  Enqueued %d conversation archives.", len(conversations.AllConversations))
+		} else {
+			c.Infof("  Not sent, no conversations found.")
+		}
+		return nil
+	})
+
+var sendConversationArchiveFunc = delay.Func(
+	"sendConversationArchive",
+	func(c appengine.Context, slackUserId string, conversationType string, ref string) error {
+		c.Infof("Sending archive for %s conversation %s %s...",
+			slackUserId, conversationType, ref)
+		account, err := getAccount(c, slackUserId)
+		if err != nil {
+			c.Errorf("  Error looking up account: %s", err.Error())
+			return err
+		}
+		// The Slack API uses the default HTTP transport, so we need to override
+		// it to get it to work on App Engine. This is normally done for all
+		// handlers, but since we're in a delay function that code has not run.
+		appengineTransport := &urlfetch.Transport{Context: c}
+		appengineTransport.Deadline = time.Second * 60
+		http.DefaultTransport = &CachingTransport{
+			Transport: appengineTransport,
+			Context:   c,
+		}
+		slackClient := slack.New(account.ApiToken)
+		conversation, err := getConversationFromRef(conversationType, ref, slackClient)
+		if err != nil {
+			c.Errorf("  Error looking up conversation: %s", err.Error())
+			if !appengine.IsDevAppServer() {
+				sendArchiveErrorMail(err, c, slackUserId)
+			}
+			return err
+		}
+		sent, err := sendConversationArchive(conversation, account, c)
+		if err != nil {
+			c.Errorf("  Error sending conversation archive: %s", err.Error())
+			if !appengine.IsDevAppServer() {
+				sendArchiveErrorMail(err, c, slackUserId)
+			}
+			return err
+		}
+		if sent {
+			c.Infof("  Sent!")
+		} else {
+			c.Infof("  Not sent, archive was empty.")
+		}
+		return nil
 	})
 
 func sendArchive(account *Account, c appengine.Context) (int, error) {
