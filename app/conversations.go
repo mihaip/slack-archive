@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"html"
 	"html/template"
+	"strings"
 	"time"
 
 	"github.com/nlopes/slack"
@@ -157,6 +158,76 @@ func (c *DirectMessageConversation) History(params slack.HistoryParameters, slac
 	return slackClient.GetIMHistory(c.im.ID, params)
 }
 
+type MultiPartyDirectMessageConversation struct {
+	group *slack.Group
+	users []*slack.User
+}
+
+func (c *MultiPartyDirectMessageConversation) Name() string {
+	userNames := make([]string, 0)
+	for _, user := range c.users {
+		userNames = append(userNames, user.Name)
+	}
+	return strings.Join(userNames, ", ")
+}
+
+func (c *MultiPartyDirectMessageConversation) NameHtml() template.HTML {
+	return template.HTML(fmt.Sprintf(
+		"<span style='%s' class='count'>%d</span>%s",
+		Style("conversation.mpdm-count"),
+		len(c.users),
+		html.EscapeString(c.Name())))
+}
+
+func (c *MultiPartyDirectMessageConversation) Purpose() string {
+	return ""
+}
+
+func (c *MultiPartyDirectMessageConversation) ToRef() (conversationType string, ref string) {
+	return "mpdm-group", c.group.ID
+}
+
+func (c *MultiPartyDirectMessageConversation) InitFromRef(ref string, slackClient *slack.Client) error {
+	group, err := slackClient.GetGroupInfo(ref)
+	if err != nil {
+		return err
+	}
+	c.group = group
+	return c.loadUsers(slackClient)
+}
+
+func (c *MultiPartyDirectMessageConversation) loadUsers(slackClient *slack.Client) error {
+	userLookup, err := newUserLookup(slackClient)
+	if err != nil {
+		return err
+	}
+	authTest, err := slackClient.AuthTest()
+	if err != nil {
+		return err
+	}
+	users := make([]*slack.User, 0, len(c.group.Members))
+	for _, userId := range c.group.Members {
+		if userId == authTest.UserID {
+			continue
+		}
+		user, err := userLookup.GetUser(userId)
+		if err != nil {
+			return err
+		}
+		users = append(users, user)
+	}
+	c.users = users
+	return nil
+}
+
+func (c *MultiPartyDirectMessageConversation) ArchiveUrl() string {
+	return conversationArchiveUrl(c)
+}
+
+func (c *MultiPartyDirectMessageConversation) History(params slack.HistoryParameters, slackClient *slack.Client) (*slack.History, error) {
+	return slackClient.GetGroupHistory(c.group.ID, params)
+}
+
 type Conversations struct {
 	AllConversations         []Conversation
 	Channels                 []Conversation
@@ -173,6 +244,8 @@ func getConversationFromRef(conversationType string, ref string, slackClient *sl
 		conversation = &PrivateChannelConversation{}
 	} else if conversationType == "dm" {
 		conversation = &DirectMessageConversation{}
+	} else if conversationType == "mpdm-group" {
+		conversation = &MultiPartyDirectMessageConversation{}
 	} else {
 		return nil, errors.New(fmt.Sprintf("Unknown conversation type: %s", conversationType))
 	}
@@ -181,6 +254,10 @@ func getConversationFromRef(conversationType string, ref string, slackClient *sl
 }
 
 func getConversations(slackClient *slack.Client, account *Account) (*Conversations, error) {
+	userLookup, err := newUserLookup(slackClient)
+	if err != nil {
+		return nil, err
+	}
 	conversations := &Conversations{}
 
 	channels, err := slackClient.GetChannels(false)
@@ -200,10 +277,25 @@ func getConversations(slackClient *slack.Client, account *Account) (*Conversatio
 		return nil, err
 	}
 	conversations.PrivateChannels = make([]Conversation, 0, len(groups))
+	conversations.MultiPartyDirectMessages = make([]Conversation, 0)
 	for i := range groups {
 		group := &groups[i]
 		if !group.IsArchived {
-			conversations.PrivateChannels = append(conversations.PrivateChannels, &PrivateChannelConversation{group})
+			if strings.HasPrefix(group.Name, "mpdm-") {
+				// Multi-party direct messages are represented as groups for
+				// backwards compatility. Since the Slack Go library doesn't
+				// have explicit multi-party direct message support, we use
+				// them to synthesize a MultiPartyDirectMessage.
+				// (https://api.slack.com/types/group)
+				mpdm := &MultiPartyDirectMessageConversation{group: group}
+				err := mpdm.loadUsers(slackClient)
+				if err != nil {
+					return nil, err
+				}
+				conversations.MultiPartyDirectMessages = append(conversations.MultiPartyDirectMessages, mpdm)
+			} else {
+				conversations.PrivateChannels = append(conversations.PrivateChannels, &PrivateChannelConversation{group})
+			}
 		}
 	}
 
@@ -213,10 +305,6 @@ func getConversations(slackClient *slack.Client, account *Account) (*Conversatio
 	}
 	conversations.DirectMessages = make([]Conversation, 0, len(ims))
 	if len(ims) > 0 {
-		userLookup, err := newUserLookup(slackClient)
-		if err != nil {
-			return nil, err
-		}
 		for i := range ims {
 			im := &ims[i]
 			if im.IsUserDeleted {
@@ -229,8 +317,6 @@ func getConversations(slackClient *slack.Client, account *Account) (*Conversatio
 			conversations.DirectMessages = append(conversations.DirectMessages, &DirectMessageConversation{im, user})
 		}
 	}
-
-	// TODO: add multi-party direct message support to the Slack Go library
 
 	conversations.AllConversations = make([]Conversation, 0, len(conversations.Channels))
 	conversations.AllConversations = append(conversations.AllConversations, conversations.Channels...)

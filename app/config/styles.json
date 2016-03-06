@@ -4,6 +4,19 @@
       "opacity": "0.5",
       "padding-right": ".2ex"
     },
+    "mpdm-count": {
+        "opacity": "0.3",
+        "color": "#fff",
+        "background": "#000",
+        "border-radius": "4px",
+        "width": "2.5ex",
+        "height": "2.5ex",
+        "line-height": "2.5ex",
+        "display": "inline-block",
+        "text-align": "center",
+        "font-size": "80%",
+        "margin-right": ".4ex"
+    },
     "user-image": {
       "vertical-align": "text-bottom",
       "padding-right": ".2ex"
