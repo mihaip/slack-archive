@@ -22,6 +22,7 @@ const (
 type Message struct {
 	*slack.Message
 	timezoneLocation *time.Location
+	slackClient      *slack.Client
 }
 
 func (m *Message) TimestampTime() time.Time {
@@ -59,6 +60,26 @@ func (m *Message) TextHtml() template.HTML {
 			if pipeIndex != -1 {
 				anchorText = control[pipeIndex+1:]
 				control = control[:pipeIndex]
+			}
+			if strings.HasPrefix(control, "@U") {
+				userId := strings.TrimPrefix(control, "@")
+				userLookup, err := newUserLookup(m.slackClient)
+				if err == nil {
+					user, err := userLookup.GetUser(userId)
+					if err == nil {
+						anchorText = fmt.Sprintf("@%s", user.Name)
+						authTest, err := m.slackClient.AuthTest()
+						if err == nil {
+							control = fmt.Sprintf("%s/team/%s", authTest.URL, user.Name)
+						} else {
+							log.Printf("Could get team URL: %s", err)
+						}
+					} else {
+						log.Printf("Could not render user mention: %s", err)
+					}
+				} else {
+					log.Printf("Could not render user mention: %s", err)
+				}
 			}
 			if anchorText == "" {
 				anchorText = control
@@ -123,7 +144,7 @@ func groupMessages(messages []*slack.Message, slackClient *slack.Client, timezon
 		return nil, err
 	}
 	for i := range messages {
-		message := &Message{messages[i], timezoneLocation}
+		message := &Message{messages[i], timezoneLocation, slackClient}
 		if message.Hidden {
 			continue
 		}
