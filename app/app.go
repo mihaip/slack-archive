@@ -174,13 +174,6 @@ func (fn SignedInAppHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	c := appengine.NewContext(r)
-	// See above about overriding the default transport
-	appengineTransport := &urlfetch.Transport{Context: c}
-	appengineTransport.Deadline = time.Second * 60
-	http.DefaultTransport = &CachingTransport{
-		Transport: appengineTransport,
-		Context:   c,
-	}
 	account, err := getAccount(c, userId)
 	if account == nil || err != nil {
 		handleAppError(NotSignedIn(r), w, r)
@@ -189,7 +182,7 @@ func (fn SignedInAppHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	state := &AppSignedInState{
 		Account:        account,
-		SlackClient:    slack.New(account.ApiToken),
+		SlackClient:    account.NewSlackClient(c),
 		session:        session,
 		responseWriter: w,
 		request:        r,

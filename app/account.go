@@ -2,10 +2,12 @@ package main
 
 import (
 	"errors"
+	"net/http"
 	"time"
 
 	"appengine"
 	"appengine/datastore"
+	"appengine/urlfetch"
 
 	"github.com/nlopes/slack"
 )
@@ -89,4 +91,17 @@ func (account *Account) GetDigestEmailAddress(slackClient *slack.Client) (string
 		return user.Profile.Email, nil
 	}
 	return "", errors.New("No email addresses found in Slack profile")
+}
+
+func (account *Account) NewSlackClient(c appengine.Context) *slack.Client {
+	// The Slack API uses the default HTTP transport, so we need to override
+	// it to get it to work on App Engine. This is normally done for all
+	// handlers, but since we're in a delay function that code has not run.
+	appengineTransport := &urlfetch.Transport{Context: c}
+	appengineTransport.Deadline = time.Second * 60
+	http.DefaultTransport = &CachingTransport{
+		Transport: appengineTransport,
+		Context:   c,
+	}
+	return slack.New(account.ApiToken)
 }

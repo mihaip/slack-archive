@@ -6,13 +6,11 @@ import (
 	"html/template"
 	"net/http"
 	"net/url"
-	"time"
 
 	"appengine"
 	"appengine/datastore"
 	"appengine/delay"
 	"appengine/mail"
-	"appengine/urlfetch"
 
 	"github.com/gorilla/mux"
 	"github.com/gorilla/sessions"
@@ -68,7 +66,7 @@ func indexHandler(w http.ResponseWriter, r *http.Request) *AppError {
 		return InternalError(err, "Could not look up account")
 	}
 
-	slackClient := slack.New(account.ApiToken)
+	slackClient := account.NewSlackClient(c)
 
 	user, err := slackClient.GetUserInfo(account.SlackUserId)
 	if err != nil {
@@ -269,16 +267,7 @@ var sendArchiveFunc = delay.Func(
 			c.Errorf("  Error looking up account: %s", err.Error())
 			return err
 		}
-		// The Slack API uses the default HTTP transport, so we need to override
-		// it to get it to work on App Engine. This is normally done for all
-		// handlers, but since we're in a delay function that code has not run.
-		appengineTransport := &urlfetch.Transport{Context: c}
-		appengineTransport.Deadline = time.Second * 60
-		http.DefaultTransport = &CachingTransport{
-			Transport: appengineTransport,
-			Context:   c,
-		}
-		slackClient := slack.New(account.ApiToken)
+		slackClient := account.NewSlackClient(c)
 		conversations, err := getConversations(slackClient, account)
 		if err != nil {
 			c.Errorf("  Error looking up conversations: %s", err.Error())
@@ -310,16 +299,7 @@ var sendConversationArchiveFunc = delay.Func(
 			c.Errorf("  Error looking up account: %s", err.Error())
 			return err
 		}
-		// The Slack API uses the default HTTP transport, so we need to override
-		// it to get it to work on App Engine. This is normally done for all
-		// handlers, but since we're in a delay function that code has not run.
-		appengineTransport := &urlfetch.Transport{Context: c}
-		appengineTransport.Deadline = time.Second * 60
-		http.DefaultTransport = &CachingTransport{
-			Transport: appengineTransport,
-			Context:   c,
-		}
-		slackClient := slack.New(account.ApiToken)
+		slackClient := account.NewSlackClient(c)
 		conversation, err := getConversationFromRef(conversationType, ref, slackClient)
 		if err != nil {
 			c.Errorf("  Error looking up conversation: %s", err.Error())
@@ -345,7 +325,7 @@ var sendConversationArchiveFunc = delay.Func(
 	})
 
 func sendArchive(account *Account, c appengine.Context) (int, error) {
-	slackClient := slack.New(account.ApiToken)
+	slackClient := account.NewSlackClient(c)
 	conversations, err := getConversations(slackClient, account)
 	if err != nil {
 		return 0, err
@@ -397,7 +377,7 @@ func sendConversationArchiveHandler(w http.ResponseWriter, r *http.Request, stat
 }
 
 func sendConversationArchive(conversation Conversation, account *Account, c appengine.Context) (bool, error) {
-	slackClient := slack.New(account.ApiToken)
+	slackClient := account.NewSlackClient(c)
 	emailAddress, err := account.GetDigestEmailAddress(slackClient)
 	if err != nil {
 		return false, err
