@@ -4,6 +4,9 @@
       "opacity": "0.5",
       "padding-right": ".2ex"
     },
+    "lock": {
+      "padding-right": ".2ex"
+    },
     "mpdm-count": {
         "opacity": "0.3",
         "color": "#fff",

@@ -69,13 +69,13 @@ type PrivateChannelConversation struct {
 }
 
 func (c *PrivateChannelConversation) Name() string {
-	return fmt.Sprintf("#%s", c.group.Name)
+	return fmt.Sprintf("🔒%s", c.group.Name)
 }
 
 func (c *PrivateChannelConversation) NameHtml() template.HTML {
 	return template.HTML(fmt.Sprintf(
-		"<span style='%s' class='hash'>#</span>%s",
-		Style("conversation.hash"),
+		"<span style='%s' class='lock'>🔒</span>%s",
+		Style("conversation.lock"),
 		html.EscapeString(c.group.Name)))
 }
 
