@@ -80,6 +80,20 @@ func (m *Message) TextHtml() template.HTML {
 				} else {
 					log.Printf("Could not render user mention: %s", err)
 				}
+			} else if strings.HasPrefix(control, "#C") {
+				channelId := strings.TrimPrefix(control, "#")
+				channel, err := m.slackClient.GetChannelInfo(channelId)
+				if err == nil {
+					anchorText = fmt.Sprintf("#%s", channel.Name)
+					authTest, err := m.slackClient.AuthTest()
+					if err == nil {
+						control = fmt.Sprintf("%s/team/%s", authTest.URL, channel.Name)
+					} else {
+						log.Printf("Could get team URL: %s", err)
+					}
+				} else {
+					log.Printf("Could not render channel mention: %s", err)
+				}
 			}
 			if anchorText == "" {
 				anchorText = control
