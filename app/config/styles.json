@@ -50,6 +50,9 @@
     "automated": {
         "font-style": "italic",
         "color": "#9e9ea6"
+    },
+    "me": {
+        "font-style": "italic"
     }
   }
 }

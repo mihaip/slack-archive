@@ -116,6 +116,9 @@ func (m *Message) StylePath() string {
 	if strings.HasPrefix(m.SubType, "channel_") || strings.HasPrefix(m.SubType, "group_") {
 		return "message.automated"
 	}
+	if m.SubType == "me_message" {
+		return "message.me"
+	}
 	return ""
 }
 
