@@ -1,7 +1,11 @@
 {{define "message"}}
 
 <div style="{{style "message" .StylePath}}">
-{{.TextHtml}}
+  {{.TextHtml}}
+
+  {{range .Attachments}}
+    {{template "attachment" .}}
+  {{end}}
 </div>
 
 {{end}}

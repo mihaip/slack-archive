@@ -1,0 +1,50 @@
+{{define "attachment"}}
+
+<div style="{{style "message.attachment"}}">
+
+  <div style="{{style "message.attachment.body"}}">
+    {{if .ThumbURL}}
+      <img src="{{.ThumbURL}}" alt="" style="{{style "message.attachment.thumb"}}">
+    {{end}}
+
+    {{if .AuthorName}}
+      <div style="{{style "message.attachment.author"}}">
+        {{if .AuthorIcon}}
+          <img src="{{.AuthorIcon}}" alt="" width="16" height="16" style="{{style "message.attachment.author.icon"}}">
+        {{end}}
+        {{if .AuthorLink}}
+          <a href="{{.AuthorLink}}">{{.AuthorName}}</a>
+        {{else}}
+          {{.AuthorName}}
+        {{end}}
+        {{if .AuthorSubname}}
+          <span style="{{style "message.attachment.author.subname"}}">{{.AuthorSubname}}</span>
+        {{end}}
+      </div>
+    {{end}}
+
+    {{if .Title}}
+      <div style="{{style "message.attachment.title"}}">
+        {{if .TitleLink}}
+          <a href="{{.TitleLink}}">{{.Title}}</a>
+        {{else}}
+          {{.Title}}
+        {{end}}
+      </div>
+    {{end}}
+
+    {{if .Text}}
+      <div style="{{style "message.attachment.text"}}">
+        {{.Text}}
+      </div>
+    {{end}}
+
+    {{if .ImageURL}}
+      <a href="{{.ImageURL}}">
+        <img src="{{.ImageURL}}" alt="" style="{{style "message.attachment.image"}}">
+      </a>
+    {{end}}
+  </div>
+</div>
+
+{{end}}
