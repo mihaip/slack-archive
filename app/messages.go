@@ -94,6 +94,9 @@ func (m *Message) TextHtml() template.HTML {
 				} else {
 					log.Printf("Could not render channel mention: %s", err)
 				}
+			} else if strings.HasPrefix(control, "!") {
+				command := strings.TrimPrefix(control, "!")
+				return fmt.Sprintf("<b>@%s</b>", command)
 			}
 			if anchorText == "" {
 				anchorText = control
