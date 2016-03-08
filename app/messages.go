@@ -101,7 +101,8 @@ func (m *Message) TextHtml() template.HTML {
 			if anchorText == "" {
 				anchorText = control
 			}
-			return fmt.Sprintf("<a href='%s'>%s</a>", control, anchorText)
+			return fmt.Sprintf("<a href='%s' style='%s'>%s</a>",
+				control, Style("message.link"), anchorText)
 		})
 
 		htmlPieces = append(htmlPieces, linePrefix)

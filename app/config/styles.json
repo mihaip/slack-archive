@@ -55,6 +55,10 @@
     },
     "me": {
         "font-style": "italic"
+    },
+    "link": {
+      "color": "#4183c4",
+      "text-decoration": "none"
     }
   }
 }
