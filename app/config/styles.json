@@ -46,6 +46,10 @@
       "border-left": "solid 4px #ddd",
       "padding-left": "1ex",
       "margin": "0"
+    },
+    "automated": {
+        "font-style": "italic",
+        "color": "#9e9ea6"
     }
   }
 }

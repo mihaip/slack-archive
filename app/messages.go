@@ -112,6 +112,13 @@ func (m *Message) TextHtml() template.HTML {
 	return template.HTML(strings.Join(htmlPieces, ""))
 }
 
+func (m *Message) StylePath() string {
+	if strings.HasPrefix(m.SubType, "channel_") || strings.HasPrefix(m.SubType, "group_") {
+		return "message.automated"
+	}
+	return ""
+}
+
 type MessageGroup struct {
 	Messages []*Message
 	Author   *slack.User
