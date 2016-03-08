@@ -11,7 +11,7 @@
         "opacity": "0.3",
         "color": "#fff",
         "background": "#000",
-        "border-radius": "4px",
+        "border-radius": "3px",
         "width": "2.5ex",
         "height": "2.5ex",
         "line-height": "2.5ex",
@@ -22,14 +22,16 @@
     },
     "user-image": {
       "vertical-align": "text-bottom",
-      "padding-right": ".2ex"
+      "margin-right": ".2ex",
+      "border-radius": "3px"
     }
   },
   "message-group": {
     "margin": "4px 0",
     "author-image": {
       "float": "left",
-      "padding-right": "10px"
+      "margin-right": "10px",
+      "border-radius": "3px"
     },
     "body": {
       "overflow": "hidden",
