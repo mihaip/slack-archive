@@ -19,23 +19,8 @@ const (
 	MessageTextControlRegexp           = "<(.*?)>"
 )
 
-type Message struct {
-	*slack.Message
-	timezoneLocation *time.Location
-	slackClient      *slack.Client
-}
-
-func (m *Message) TimestampTime() time.Time {
-	floatTimestamp, err := strconv.ParseFloat(m.Timestamp, 64)
-	if err != nil {
-		log.Println("Could not parse timestamp \"%s\".", m.Timestamp, err)
-		return time.Time{}
-	}
-	return time.Unix(int64(floatTimestamp), 0).In(m.timezoneLocation)
-}
-
-func (m *Message) TextHtml() template.HTML {
-	lines := strings.Split(m.Text, "\n")
+func textToHtml(text string, slackClient *slack.Client) template.HTML {
+	lines := strings.Split(text, "\n")
 	htmlPieces := []string{}
 	controlRegexp := regexp.MustCompile(MessageTextControlRegexp)
 	for _, line := range lines {
@@ -63,12 +48,12 @@ func (m *Message) TextHtml() template.HTML {
 			}
 			if strings.HasPrefix(control, "@U") {
 				userId := strings.TrimPrefix(control, "@")
-				userLookup, err := newUserLookup(m.slackClient)
+				userLookup, err := newUserLookup(slackClient)
 				if err == nil {
 					user, err := userLookup.GetUser(userId)
 					if err == nil {
 						anchorText = fmt.Sprintf("@%s", user.Name)
-						authTest, err := m.slackClient.AuthTest()
+						authTest, err := slackClient.AuthTest()
 						if err == nil {
 							control = fmt.Sprintf("%s/team/%s", authTest.URL, user.Name)
 						} else {
@@ -82,10 +67,10 @@ func (m *Message) TextHtml() template.HTML {
 				}
 			} else if strings.HasPrefix(control, "#C") {
 				channelId := strings.TrimPrefix(control, "#")
-				channel, err := m.slackClient.GetChannelInfo(channelId)
+				channel, err := slackClient.GetChannelInfo(channelId)
 				if err == nil {
 					anchorText = fmt.Sprintf("#%s", channel.Name)
-					authTest, err := m.slackClient.AuthTest()
+					authTest, err := slackClient.AuthTest()
 					if err == nil {
 						control = fmt.Sprintf("%s/team/%s", authTest.URL, channel.Name)
 					} else {
@@ -113,6 +98,25 @@ func (m *Message) TextHtml() template.HTML {
 	return template.HTML(strings.Join(htmlPieces, ""))
 }
 
+type Message struct {
+	*slack.Message
+	timezoneLocation *time.Location
+	slackClient      *slack.Client
+}
+
+func (m *Message) TimestampTime() time.Time {
+	floatTimestamp, err := strconv.ParseFloat(m.Timestamp, 64)
+	if err != nil {
+		log.Println("Could not parse timestamp \"%s\".", m.Timestamp, err)
+		return time.Time{}
+	}
+	return time.Unix(int64(floatTimestamp), 0).In(m.timezoneLocation)
+}
+
+func (m *Message) TextHtml() template.HTML {
+	return textToHtml(m.Text, m.slackClient)
+}
+
 func (m *Message) StylePath() string {
 	if strings.HasPrefix(m.SubType, "channel_") || strings.HasPrefix(m.SubType, "group_") {
 		return "message.automated"
@@ -121,6 +125,24 @@ func (m *Message) StylePath() string {
 		return "message.me"
 	}
 	return ""
+}
+
+func (m *Message) MessageAttachments() []*MessageAttachment {
+	attachments := make([]*MessageAttachment, 0, len(m.Attachments))
+	for i := range m.Attachments {
+		attachments = append(
+			attachments, &MessageAttachment{&m.Attachments[i], m.slackClient})
+	}
+	return attachments
+}
+
+type MessageAttachment struct {
+	*slack.Attachment
+	slackClient *slack.Client
+}
+
+func (a *MessageAttachment) TextHtml() template.HTML {
+	return textToHtml(a.Text, a.slackClient)
 }
 
 type MessageGroup struct {

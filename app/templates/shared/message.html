@@ -3,7 +3,7 @@
 <div style="{{style "message" .StylePath}}">
   {{.TextHtml}}
 
-  {{range .Attachments}}
+  {{range .MessageAttachments}}
     {{template "attachment" .}}
   {{end}}
 </div>
