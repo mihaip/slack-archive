@@ -15,7 +15,8 @@ import (
 
 const (
 	MessageGroupDisplayTimestampFormat = "3:04pm"
-	MessageTextBlockquotePrefix        = "&gt;"
+	MessageTextBlockquotePrefix1       = "&gt;"
+	MessageTextBlockquotePrefix2       = ">>>"
 	MessageTextControlRegexp           = "<(.*?)>"
 )
 
@@ -26,8 +27,10 @@ func textToHtml(text string, slackClient *slack.Client) template.HTML {
 	for _, line := range lines {
 		linePrefix := ""
 		lineSuffix := ""
-		if strings.HasPrefix(line, MessageTextBlockquotePrefix) {
-			line = strings.TrimPrefix(line, MessageTextBlockquotePrefix)
+		if strings.HasPrefix(line, MessageTextBlockquotePrefix1) ||
+			strings.HasPrefix(line, MessageTextBlockquotePrefix2) {
+			line = strings.TrimPrefix(line, MessageTextBlockquotePrefix1)
+			line = strings.TrimPrefix(line, MessageTextBlockquotePrefix2)
 			if line == "" {
 				// Ensure that even empty blockquote lines get rendered.
 				line = "\u200b"
