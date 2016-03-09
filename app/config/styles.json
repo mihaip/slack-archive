@@ -1,4 +1,17 @@
 {
+  "conversation-archive": {
+    "title": {
+      "font-size": "20pt",
+      "font-weight": "bold",
+      "margin": "0",
+      "border-bottom": "dashed 1px #ccc"
+    },
+    "subtitle": {
+      "font-size": "9pt",
+      "margin": "0.2em 0 1.3em 0",
+      "color": "#9e9ea6"
+    }
+  },
   "conversation": {
     "hash": {
       "opacity": "0.5",

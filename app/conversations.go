@@ -11,6 +11,10 @@ import (
 	"github.com/nlopes/slack"
 )
 
+const (
+	ConversationArchiveDateFormat = "January 2, 2006"
+)
+
 func conversationArchiveUrl(c Conversation) string {
 	conversationType, ref := c.ToRef()
 	url, _ := RouteUrl("conversation-archive", "type", conversationType, "ref", ref)
@@ -328,7 +332,9 @@ func getConversations(slackClient *slack.Client, account *Account) (*Conversatio
 }
 
 type ConversationArchive struct {
+	Conversation  Conversation
 	MessageGroups []*MessageGroup
+	MessageCount  int
 	StartTime     time.Time
 	EndTime       time.Time
 }
@@ -340,6 +346,10 @@ func (archive *ConversationArchive) Empty() bool {
 		}
 	}
 	return true
+}
+
+func (archive *ConversationArchive) DisplayDate() string {
+	return safeFormattedDate(archive.EndTime.Format(ConversationArchiveDateFormat))
 }
 
 func newConversationArchive(conversation Conversation, slackClient *slack.Client, account *Account) (*ConversationArchive, error) {
@@ -372,7 +382,9 @@ func newConversationArchive(conversation Conversation, slackClient *slack.Client
 		return nil, err
 	}
 	return &ConversationArchive{
+		Conversation:  conversation,
 		MessageGroups: messageGroups,
+		MessageCount:  len(messages),
 		StartTime:     archiveStartTime,
 		EndTime:       archiveEndTime,
 	}, nil

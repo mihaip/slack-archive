@@ -1,5 +1,8 @@
 {{define "conversation-archive"}}
 
+<h2 style="{{style "conversation-archive.title"}}">{{.Conversation.NameHtml}} Archive</h2>
+<div style="{{style "conversation-archive.subtitle"}}">{{.MessageCount}} message{{if ne .MessageCount 1}}s{{end}} from {{.DisplayDate}}</div>
+
 {{range .MessageGroups}}
   {{template "message-group" .}}
 {{end}}
