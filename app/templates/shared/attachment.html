@@ -13,7 +13,7 @@
           <img src="{{.AuthorIcon}}" alt="" width="16" height="16" style="{{style "message.attachment.author.icon"}}">
         {{end}}
         {{if .AuthorLink}}
-          <a href="{{.AuthorLink}}">{{.AuthorName}}</a>
+          <a href="{{.AuthorLink}}" style="{{style "message.link"}}">{{.AuthorName}}</a>
         {{else}}
           {{.AuthorName}}
         {{end}}
@@ -26,7 +26,7 @@
     {{if .Title}}
       <div style="{{style "message.attachment.title"}}">
         {{if .TitleLink}}
-          <a href="{{.TitleLink}}">{{.Title}}</a>
+          <a href="{{.TitleLink}}" style="{{style "message.link"}}">{{.Title}}</a>
         {{else}}
           {{.Title}}
         {{end}}
