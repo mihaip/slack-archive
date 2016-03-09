@@ -42,6 +42,11 @@ func init() {
 	router.Handle("/archive/conversation/send", SignedInAppHandler(sendConversationArchiveHandler)).Name("send-conversation-archive").Methods("POST")
 	router.Handle("/archive/conversation/{type}/{ref}", SignedInAppHandler(conversationArchiveHandler)).Name("conversation-archive")
 
+	router.Handle("/account/settings", SignedInAppHandler(settingsHandler)).Name("settings").Methods("GET")
+	router.Handle("/account/settings", SignedInAppHandler(saveSettingsHandler)).Name("save-settings").Methods("POST")
+	router.Handle("/account/set-initial-timezone", SignedInAppHandler(setInitialTimezoneHandler)).Name("set-initial-timezone").Methods("POST")
+	router.Handle("/account/delete", SignedInAppHandler(deleteAccountHandler)).Name("delete-account").Methods("POST")
+
 	http.Handle("/", router)
 }
 
@@ -413,4 +418,24 @@ func sendConversationArchive(conversation Conversation, account *Account, c appe
 	}
 	err = mail.Send(c, archiveMessage)
 	return true, err
+}
+
+func settingsHandler(w http.ResponseWriter, r *http.Request, state *AppSignedInState) *AppError {
+	// TODO
+	return nil
+}
+
+func saveSettingsHandler(w http.ResponseWriter, r *http.Request, state *AppSignedInState) *AppError {
+	// TODO
+	return nil
+}
+
+func setInitialTimezoneHandler(w http.ResponseWriter, r *http.Request, state *AppSignedInState) *AppError {
+	// TODO
+	return nil
+}
+
+func deleteAccountHandler(w http.ResponseWriter, r *http.Request, state *AppSignedInState) *AppError {
+	// TODO
+	return nil
 }
