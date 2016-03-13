@@ -6,6 +6,10 @@
   {{range .MessageAttachments}}
     {{template "attachment" .}}
   {{end}}
+
+  {{if .MessageFile}}
+    {{template "file" .MessageFile}}
+  {{end}}
 </div>
 
 {{end}}

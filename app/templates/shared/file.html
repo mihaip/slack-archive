@@ -1,0 +1,17 @@
+{{define "file"}}
+
+<div style="{{style "message.file"}}">
+
+  <a href="{{.URLPrivate}}">
+    {{if .ThumbnailUrl}}
+      <img src="{{.ThumbnailUrl}}" alt=""
+          style="{{style "message.file.thumbnail"}}"
+          width="{{.ThumbnailWidth}}" height="{{.ThumbnailHeight}}">
+    {{else}}
+      {{.Name}}
+    {{end}}
+  </a>
+
+</div>
+
+{{end}}

@@ -145,6 +145,13 @@ func (m *Message) MessageAttachments() []*MessageAttachment {
 	return attachments
 }
 
+func (m *Message) MessageFile() *MessageFile {
+	if m.File == nil {
+		return nil
+	}
+	return &MessageFile{m.File, m.slackClient}
+}
+
 type MessageAttachment struct {
 	*slack.Attachment
 	slackClient *slack.Client
@@ -152,6 +159,23 @@ type MessageAttachment struct {
 
 func (a *MessageAttachment) TextHtml() template.HTML {
 	return textToHtml(a.Text, true, a.slackClient)
+}
+
+type MessageFile struct {
+	*slack.File
+	slackClient *slack.Client
+}
+
+func (f *MessageFile) ThumbnailUrl() string {
+	return f.Thumb360
+}
+
+func (f *MessageFile) ThumbnailWidth() int {
+	return f.Thumb360W
+}
+
+func (f *MessageFile) ThumbnailHeight() int {
+	return f.Thumb360H
 }
 
 type MessageGroup struct {
