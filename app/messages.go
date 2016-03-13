@@ -20,8 +20,14 @@ const (
 	MessageTextControlRegexp           = "<(.*?)>"
 )
 
-func textToHtml(text string, slackClient *slack.Client) template.HTML {
+func textToHtml(text string, truncate bool, slackClient *slack.Client) template.HTML {
+	if truncate && len(text) > 700 {
+		text = fmt.Sprintf("%s...", text[:700])
+	}
 	lines := strings.Split(text, "\n")
+	if truncate && len(lines) > 5 {
+		lines = append(lines[:5], "...")
+	}
 	htmlPieces := []string{}
 	controlRegexp := regexp.MustCompile(MessageTextControlRegexp)
 	for _, line := range lines {
@@ -117,7 +123,7 @@ func (m *Message) TimestampTime() time.Time {
 }
 
 func (m *Message) TextHtml() template.HTML {
-	return textToHtml(m.Text, m.slackClient)
+	return textToHtml(m.Text, false, m.slackClient)
 }
 
 func (m *Message) StylePath() string {
@@ -145,7 +151,7 @@ type MessageAttachment struct {
 }
 
 func (a *MessageAttachment) TextHtml() template.HTML {
-	return textToHtml(a.Text, a.slackClient)
+	return textToHtml(a.Text, true, a.slackClient)
 }
 
 type MessageGroup struct {
