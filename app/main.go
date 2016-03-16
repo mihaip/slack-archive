@@ -4,13 +4,16 @@ import (
 	"bytes"
 	"fmt"
 	"html/template"
+	"io"
 	"net/http"
 	"net/url"
+	"time"
 
 	"appengine"
 	"appengine/datastore"
 	"appengine/delay"
 	"appengine/mail"
+	"appengine/urlfetch"
 
 	"github.com/gorilla/mux"
 	"github.com/gorilla/sessions"
@@ -23,12 +26,14 @@ var sessionStore *sessions.CookieStore
 var sessionConfig SessionConfig
 var styles map[string]template.CSS
 var templates map[string]*Template
+var fileUrlRefEncryptionKey []byte
 
 func init() {
 	styles = loadStyles()
 	templates = loadTemplates()
 	sessionStore, sessionConfig = initSession()
 	slackOAuthConfig = initSlackOAuthConfig()
+	fileUrlRefEncryptionKey = loadFileUrlRefEncryptionKey()
 
 	router = mux.NewRouter()
 	router.Handle("/", AppHandler(indexHandler)).Name("index")
@@ -41,6 +46,7 @@ func init() {
 	router.Handle("/archive/cron", AppHandler(archiveCronHandler))
 	router.Handle("/archive/conversation/send", SignedInAppHandler(sendConversationArchiveHandler)).Name("send-conversation-archive").Methods("POST")
 	router.Handle("/archive/conversation/{type}/{ref}", SignedInAppHandler(conversationArchiveHandler)).Name("conversation-archive")
+	router.Handle("/archive/file-thumbnail/{ref}", AppHandler(archiveFileThumbnailHandler)).Name("archive-file-thumbnail")
 
 	router.Handle("/account/settings", SignedInAppHandler(settingsHandler)).Name("settings").Methods("GET")
 	router.Handle("/account/settings", SignedInAppHandler(saveSettingsHandler)).Name("save-settings").Methods("POST")
@@ -126,7 +132,9 @@ func signInHandler(w http.ResponseWriter, r *http.Request) *AppError {
 			// Direct message archive
 			"im:read im:history "+
 			// Multi-party direct mesage archive
-			"mpim:read mpim:history")
+			"mpim:read mpim:history "+
+			// Read file thumbnail
+			"files:read")
 	redirectUrlString, _ := AbsoluteRouteUrl("slack-callback")
 	redirectUrl, _ := url.Parse(redirectUrlString)
 	if continueUrl := r.FormValue("continue_url"); continueUrl != "" {
@@ -418,6 +426,73 @@ func sendConversationArchive(conversation Conversation, account *Account, c appe
 	}
 	err = mail.Send(c, archiveMessage)
 	return true, err
+}
+
+func archiveFileThumbnailHandler(w http.ResponseWriter, r *http.Request) *AppError {
+	vars := mux.Vars(r)
+	encodedRef := vars["ref"]
+	ref, err := DecodeFileUrlRef(encodedRef)
+	if err != nil {
+		return BadRequest(err, "malformed ref")
+	}
+
+	c := appengine.NewContext(r)
+
+	account, err := getAccount(c, ref.SlackUserId)
+	if err != nil {
+		return BadRequest(err, "no acccount")
+	}
+
+	slackClient := account.NewSlackClient(c)
+	file, _, _, err := slackClient.GetFileInfo(ref.FileId, 0, 0)
+	if err != nil {
+		return SlackFetchError(err, "file")
+	}
+
+	// We're displaying using the Thumb360 dimensions, but prefer the 720 data
+	// (if available) for retina screens.
+	url := file.Thumb720
+	if url == "" {
+		url = file.Thumb360
+	}
+	c.Infof("Proxying %s for %s", url, ref.SlackUserId)
+	appengineTransport := &urlfetch.Transport{Context: c}
+	appengineTransport.Deadline = time.Second * 60
+	cachingTransport := &CachingTransport{
+		Transport: appengineTransport,
+		Context:   c,
+	}
+	client := http.Client{Transport: cachingTransport}
+	fileReq, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return InternalError(err, "could not create request")
+	}
+	fileReq.Header.Set("Authorization", fmt.Sprintf("Bearer %s", account.ApiToken))
+	fileResp, err := client.Do(fileReq)
+	if err != nil {
+		return InternalError(err, "could not get file response")
+	}
+	copyHeaders := [...]string{
+		"Cache-Control",
+		"Content-Length",
+		"Etag",
+		"Expires",
+		"X-Content-Type-Options",
+		"X-Frame-Options",
+		"Content-Type",
+		"Last-Modified",
+	}
+	for _, h := range copyHeaders {
+		v, ok := fileResp.Header[h]
+		if ok && len(v) == 1 {
+			w.Header()[h] = v
+		}
+	}
+	_, err = io.Copy(w, fileResp.Body)
+	if err != nil {
+		return InternalError(err, "could not copy response")
+	}
+	return nil
 }
 
 func settingsHandler(w http.ResponseWriter, r *http.Request, state *AppSignedInState) *AppError {

@@ -377,7 +377,7 @@ func newConversationArchive(conversation Conversation, slackClient *slack.Client
 		}
 		params.Latest = history.Messages[len(history.Messages)-1].Timestamp
 	}
-	messageGroups, err := groupMessages(messages, slackClient, account.TimezoneLocation)
+	messageGroups, err := groupMessages(messages, slackClient, account)
 	if err != nil {
 		return nil, err
 	}

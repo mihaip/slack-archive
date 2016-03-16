@@ -109,8 +109,8 @@ func textToHtml(text string, truncate bool, slackClient *slack.Client) template.
 
 type Message struct {
 	*slack.Message
-	timezoneLocation *time.Location
-	slackClient      *slack.Client
+	slackClient *slack.Client
+	account     *Account
 }
 
 func (m *Message) TimestampTime() time.Time {
@@ -119,7 +119,7 @@ func (m *Message) TimestampTime() time.Time {
 		log.Println("Could not parse timestamp \"%s\".", m.Timestamp, err)
 		return time.Time{}
 	}
-	return time.Unix(int64(floatTimestamp), 0).In(m.timezoneLocation)
+	return time.Unix(int64(floatTimestamp), 0).In(m.account.TimezoneLocation)
 }
 
 func (m *Message) TextHtml() template.HTML {
@@ -149,7 +149,7 @@ func (m *Message) MessageFile() *MessageFile {
 	if m.File == nil {
 		return nil
 	}
-	return &MessageFile{m.File, m.slackClient}
+	return &MessageFile{m.File, m.slackClient, m.account}
 }
 
 type MessageAttachment struct {
@@ -164,10 +164,16 @@ func (a *MessageAttachment) TextHtml() template.HTML {
 type MessageFile struct {
 	*slack.File
 	slackClient *slack.Client
+	account     *Account
 }
 
-func (f *MessageFile) ThumbnailUrl() string {
-	return f.Thumb360
+func (f *MessageFile) ThumbnailUrl() (string, error) {
+	ref := FileUrlRef{f.ID, f.account.SlackUserId}
+	encodedRef, err := ref.Encode()
+	if err != nil {
+		return "", err
+	}
+	return AbsoluteRouteUrl("archive-file-thumbnail", "ref", encodedRef)
 }
 
 func (f *MessageFile) ThumbnailWidth() int {
@@ -219,7 +225,7 @@ func (mg *MessageGroup) DisplayTimestamp() string {
 		MessageGroupDisplayTimestampFormat))
 }
 
-func groupMessages(messages []*slack.Message, slackClient *slack.Client, timezoneLocation *time.Location) ([]*MessageGroup, error) {
+func groupMessages(messages []*slack.Message, slackClient *slack.Client, account *Account) ([]*MessageGroup, error) {
 	var currentGroup *MessageGroup = nil
 	groups := make([]*MessageGroup, 0)
 	userLookup, err := newUserLookup(slackClient)
@@ -227,7 +233,7 @@ func groupMessages(messages []*slack.Message, slackClient *slack.Client, timezon
 		return nil, err
 	}
 	for i := range messages {
-		message := &Message{messages[i], timezoneLocation, slackClient}
+		message := &Message{messages[i], slackClient, account}
 		if message.Hidden {
 			continue
 		}
