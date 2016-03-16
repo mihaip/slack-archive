@@ -70,13 +70,13 @@ func (lookup *UserLookup) GetUserForMessage(message *slack.Message) (*slack.User
 	}
 	if message.Username != "" {
 		messageAuthor := lookup.GetUserByName(message.Username)
-		if messageAuthor == nil {
-			// Synthesize a slack.User from just the given username.
-			// It would be nice to also include the profile picture, but the
-			// Go library and the Slack API do not agree about how it is
-			// represented.
-			return newSyntheticUser(message.Username), nil
+		if messageAuthor != nil {
+			return messageAuthor, nil
 		}
+		// Synthesize a slack.User from just the given username. It would be
+		// nice to also include the profile picture, but the Go library and the
+		// Slack API do not agree about how it is represented.
+		return newSyntheticUser(message.Username), nil
 	}
 	// Fall back on a synthetic user with the ID, it's better than nothing.
 	if message.User != "" {
