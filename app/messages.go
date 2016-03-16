@@ -30,7 +30,7 @@ func textToHtml(text string, truncate bool, slackClient *slack.Client) template.
 	}
 	htmlPieces := []string{}
 	controlRegexp := regexp.MustCompile(MessageTextControlRegexp)
-	for _, line := range lines {
+	for i, line := range lines {
 		linePrefix := ""
 		lineSuffix := ""
 		if strings.HasPrefix(line, MessageTextBlockquotePrefix1) ||
@@ -45,7 +45,9 @@ func textToHtml(text string, truncate bool, slackClient *slack.Client) template.
 				Style("message.blockquote"))
 			lineSuffix = "</blockquote>"
 		} else {
-			lineSuffix = "<br>"
+			if i != 0 {
+				lineSuffix = "<br>"
+			}
 		}
 		line = controlRegexp.ReplaceAllStringFunc(line, func(control string) string {
 			control = control[1 : len(control)-1]
