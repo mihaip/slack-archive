@@ -1,0 +1,52 @@
+{{define "title"}}Settings{{end}}
+
+{{define "body"}}
+<script src="/static/settings.js"></script>
+
+<form method="POST" action="{{routeUrl "save-settings"}}">
+
+<div class="setting">
+  Email address:
+  <label>
+    <input type="radio" name="email_address" value="{{.User.Profile.Email}}" {{if eq .User.Profile.Email .AccountEmailAddress}}checked{{end}}>
+    {{.User.Profile.Email}}
+  </label>
+  <label>
+    <input type="radio" name="email_address" value="disabled" {{if eq "disabled" .AccountEmailAddress}}checked {{end}}>
+    Disabled
+  </label>
+  <div class="explanation">
+    Where your archives will be sent to. The email address is controlled by <a href="{{.Account.SlackTeamUrl}}account/settings#email">your Slack settings</a>.
+  </div>
+</div>
+
+<div class="setting">
+  <label>
+    Timezone:
+    <select name="timezone_name">
+      {{$accountTimezoneName := .Account.TimezoneName}}
+      {{range .Timezones}}
+        {{if .LocationName}}
+          <option value="{{.LocationName}}" {{if eq .LocationName $accountTimezoneName}}selected{{end}}>{{.LocationName}} (GMT {{.DisplayUTCOffset}})</option>
+        {{else}}
+          <option disabled></option>
+        {{end}}
+      {{end}}
+    </select>
+    <div class="explanation">
+      Used for determining day boundaries and timestamps in emails.
+    </div>
+  </label>
+</div>
+
+<input type="submit" class="action-button" value="Save Settings">
+
+</form>
+
+<form id="delete-account-form" method="POST" action="{{routeUrl "delete-account"}}" onsubmit="return confirmDeleteAccount()">
+  If you'd like all data that's stored about your Slack account removed, you can
+  <input type="submit" value="delete your account" class="inline destructive">.
+</form>
+
+{{end}}
+

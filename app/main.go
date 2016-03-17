@@ -22,6 +22,7 @@ import (
 
 var router *mux.Router
 var slackOAuthConfig OAuthConfig
+var timezones Timezones
 var sessionStore *sessions.CookieStore
 var sessionConfig SessionConfig
 var styles map[string]template.CSS
@@ -31,6 +32,7 @@ var fileUrlRefEncryptionKey []byte
 func init() {
 	styles = loadStyles()
 	templates = loadTemplates()
+	timezones = initTimezones()
 	sessionStore, sessionConfig = initSession()
 	slackOAuthConfig = initSlackOAuthConfig()
 	fileUrlRefEncryptionKey = loadFileUrlRefEncryptionKey()
@@ -98,7 +100,8 @@ func indexHandler(w http.ResponseWriter, r *http.Request) *AppError {
 	}
 
 	var settingsSummary = map[string]interface{}{
-		"EmailAddress": emailAddress,
+		"EmailAddress":      emailAddress,
+		"ConversationCount": len(conversations.AllConversations),
 	}
 	var data = map[string]interface{}{
 		"User":            user,
@@ -496,13 +499,44 @@ func archiveFileThumbnailHandler(w http.ResponseWriter, r *http.Request) *AppErr
 }
 
 func settingsHandler(w http.ResponseWriter, r *http.Request, state *AppSignedInState) *AppError {
-	// TODO
-	return nil
+	account := state.Account
+	emailAddress, err := account.GetDigestEmailAddress(state.SlackClient)
+	if err != nil {
+		return SlackFetchError(err, "emails")
+	}
+	user, err := state.SlackClient.GetUserInfo(account.SlackUserId)
+	if err != nil {
+		return SlackFetchError(err, "user")
+	}
+	var data = map[string]interface{}{
+		"Account":             account,
+		"User":                user,
+		"AccountEmailAddress": emailAddress,
+		"Timezones":           timezones,
+	}
+	return templates["settings"].Render(w, data, state)
 }
 
 func saveSettingsHandler(w http.ResponseWriter, r *http.Request, state *AppSignedInState) *AppError {
-	// TODO
-	return nil
+	c := appengine.NewContext(r)
+	account := state.Account
+
+	timezoneName := r.FormValue("timezone_name")
+	_, err := time.LoadLocation(timezoneName)
+	if err != nil {
+		return BadRequest(err, "Malformed timezone_name value")
+	}
+	account.TimezoneName = timezoneName
+
+	account.DigestEmailAddress = r.FormValue("email_address")
+
+	err = account.Put(c)
+	if err != nil {
+		return InternalError(err, "Could not save user")
+	}
+
+	state.AddFlash("Settings saved.")
+	return RedirectToRoute("settings")
 }
 
 func setInitialTimezoneHandler(w http.ResponseWriter, r *http.Request, state *AppSignedInState) *AppError {
@@ -511,6 +545,8 @@ func setInitialTimezoneHandler(w http.ResponseWriter, r *http.Request, state *Ap
 }
 
 func deleteAccountHandler(w http.ResponseWriter, r *http.Request, state *AppSignedInState) *AppError {
-	// TODO
-	return nil
+	c := appengine.NewContext(r)
+	state.Account.Delete(c)
+	state.ClearSession()
+	return RedirectToRoute("index")
 }

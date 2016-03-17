@@ -14,6 +14,18 @@
 <div class="blurb">
   You're signed in as {{.User.Name}} from <a href="https://{{.Team.Domain}}.slack.com/">{{.Team.Name}}</a>
   (<form class="inline" method="POST" action="{{routeUrl "sign-out"}}"><input type="submit" class="inline" value="sign out"></form>).
+
+  {{if eq .SettingsSummary.EmailAddress "disabled"}}
+    You've disabled emails, but you can still view your Slack activity in
+    in {{.SettingsSummary.ConversationCount}} conversations below.
+  {{else}}
+    You'll be getting a daily archive of your Slack activity in
+    {{.SettingsSummary.ConversationCount}} conversations sent to
+    <code>{{.SettingsSummary.EmailAddress}}</code>
+  {{end}}
+
+  (<a href="{{routeUrl "settings"}}">change settings</a>).
+
 </div>
 
 <form method="POST" action="{{routeUrl "send-archive"}}">
