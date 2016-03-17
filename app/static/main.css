@@ -103,6 +103,11 @@ input[type="submit"].inline.destructive {
   color: #779dc2;
 }
 
+.footer .disclaimer {
+  float: left;
+  color: #aaa;
+}
+
 .conversation-list {
   list-style-type: none;
   padding: 0;
