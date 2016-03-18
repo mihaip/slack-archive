@@ -181,10 +181,17 @@ func slackOAuthCallbackHandler(w http.ResponseWriter, r *http.Request) *AppError
 		return InternalError(err, "Could not look up user")
 	}
 	if account == nil {
+		timezoneName := ""
+		if user, err := slackClient.GetUserInfo(authTest.UserID); err == nil && len(user.TZ) > 0 {
+			if _, err := time.LoadLocation(user.TZ); err == nil {
+				timezoneName = user.TZ
+			}
+		}
 		account = &Account{
 			SlackUserId:   authTest.UserID,
 			SlackTeamName: authTest.Team,
 			SlackTeamUrl:  authTest.URL,
+			TimezoneName:  timezoneName,
 		}
 	}
 	account.ApiToken = token
