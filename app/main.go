@@ -52,7 +52,6 @@ func init() {
 
 	router.Handle("/account/settings", SignedInAppHandler(settingsHandler)).Name("settings").Methods("GET")
 	router.Handle("/account/settings", SignedInAppHandler(saveSettingsHandler)).Name("save-settings").Methods("POST")
-	router.Handle("/account/set-initial-timezone", SignedInAppHandler(setInitialTimezoneHandler)).Name("set-initial-timezone").Methods("POST")
 	router.Handle("/account/delete", SignedInAppHandler(deleteAccountHandler)).Name("delete-account").Methods("POST")
 
 	http.Handle("/", router)
@@ -108,7 +107,6 @@ func indexHandler(w http.ResponseWriter, r *http.Request) *AppError {
 		"Team":            team,
 		"Conversations":   conversations,
 		"SettingsSummary": settingsSummary,
-		"DetectTimezone":  !account.HasTimezoneSet,
 	}
 	return templates["index"].Render(w, data, &AppSignedInState{
 		Account:        account,
@@ -537,11 +535,6 @@ func saveSettingsHandler(w http.ResponseWriter, r *http.Request, state *AppSigne
 
 	state.AddFlash("Settings saved.")
 	return RedirectToRoute("settings")
-}
-
-func setInitialTimezoneHandler(w http.ResponseWriter, r *http.Request, state *AppSignedInState) *AppError {
-	// TODO
-	return nil
 }
 
 func deleteAccountHandler(w http.ResponseWriter, r *http.Request, state *AppSignedInState) *AppError {

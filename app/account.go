@@ -19,7 +19,6 @@ type Account struct {
 	ApiToken           string         `datastore:",noindex"`
 	TimezoneName       string         `datastore:",noindex"`
 	TimezoneLocation   *time.Location `datastore:"-,"`
-	HasTimezoneSet     bool           `datastore:"-,"`
 	DigestEmailAddress string         `datastore:",noindex"`
 }
 
@@ -39,8 +38,7 @@ func getAccount(c appengine.Context, slackUserId string) (*Account, error) {
 }
 
 func initAccount(account *Account) error {
-	account.HasTimezoneSet = len(account.TimezoneName) > 0
-	if !account.HasTimezoneSet {
+	if len(account.TimezoneName) == 0 {
 		account.TimezoneName = "America/Los_Angeles"
 	}
 	var err error
