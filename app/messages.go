@@ -18,6 +18,7 @@ const (
 	MessageTextBlockquotePrefix1       = "&gt;"
 	MessageTextBlockquotePrefix2       = ">>>"
 	MessageTextControlRegexp           = "<(.*?)>"
+	MessageTextEmojiRegexp             = ":([a-z_]+):"
 )
 
 func textToHtml(text string, truncate bool, slackClient *slack.Client) template.HTML {
@@ -30,6 +31,7 @@ func textToHtml(text string, truncate bool, slackClient *slack.Client) template.
 	}
 	htmlPieces := []string{}
 	controlRegexp := regexp.MustCompile(MessageTextControlRegexp)
+	emojiRegexp := regexp.MustCompile(MessageTextEmojiRegexp)
 	for i, line := range lines {
 		linePrefix := ""
 		lineSuffix := ""
@@ -99,6 +101,13 @@ func textToHtml(text string, truncate bool, slackClient *slack.Client) template.
 			}
 			return fmt.Sprintf("<a href='%s' style='%s'>%s</a>",
 				control, Style("message.link"), anchorText)
+		})
+		line = emojiRegexp.ReplaceAllStringFunc(line, func(emojiString string) string {
+			shortName := emojiString[1 : len(emojiString)-1]
+			if emoji, ok := emojiByShortName[shortName]; ok {
+				return fmt.Sprintf("<span title=\"%s\">&#x%s;</a>", emojiString, emoji.UnicodeCodePointHex)
+			}
+			return emojiString
 		})
 
 		htmlPieces = append(htmlPieces, linePrefix)

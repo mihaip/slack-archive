@@ -28,6 +28,7 @@ var sessionConfig SessionConfig
 var styles map[string]template.CSS
 var templates map[string]*Template
 var fileUrlRefEncryptionKey []byte
+var emojiByShortName map[string]*Emoji
 
 func init() {
 	styles = loadStyles()
@@ -36,6 +37,7 @@ func init() {
 	sessionStore, sessionConfig = initSession()
 	slackOAuthConfig = initSlackOAuthConfig()
 	fileUrlRefEncryptionKey = loadFileUrlRefEncryptionKey()
+	emojiByShortName = loadEmoji()
 
 	router = mux.NewRouter()
 	router.Handle("/", AppHandler(indexHandler)).Name("index")
