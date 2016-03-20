@@ -43,6 +43,10 @@ a:hover {
   margin: 1em 15px;
 }
 
+.blurb .user-image {
+  vertical-align: text-bottom;
+}
+
 form.inline {
   display: inline;
 }

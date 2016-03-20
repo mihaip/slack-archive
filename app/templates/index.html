@@ -12,7 +12,9 @@
 {{define "body"}}
 
 <div class="blurb">
-  You're signed in as {{.User.Name}} from <a href="https://{{.Team.Domain}}.slack.com/">{{.Team.Name}}</a>
+  You're signed in as <a href="https://{{.Team.Domain}}.slack.com/team/{{.User.Name}}">
+  <img src="{{.User.Profile.Image48}}" width="24" height="24" class="user-image">
+  {{.User.Name}}</a> from <a href="https://{{.Team.Domain}}.slack.com/">{{.Team.Name}}</a>
   (<form class="inline" method="POST" action="{{routeUrl "sign-out"}}"><input type="submit" class="inline" value="sign out"></form>).
 
   {{if eq .SettingsSummary.EmailAddress "disabled"}}
