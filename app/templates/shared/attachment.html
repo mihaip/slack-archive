@@ -26,9 +26,9 @@
     {{if .Title}}
       <div style="{{style "message.attachment.title"}}">
         {{if .TitleLink}}
-          <a href="{{.TitleLink}}" style="{{style "message.link"}}">{{.Title}}</a>
+          <a href="{{.TitleLink}}" style="{{style "message.link"}}">{{.TitleHtml}}</a>
         {{else}}
-          {{.Title}}
+          {{.TitleHtml}}
         {{end}}
       </div>
     {{end}}

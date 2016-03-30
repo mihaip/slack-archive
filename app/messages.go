@@ -168,6 +168,10 @@ type MessageAttachment struct {
 	slackClient *slack.Client
 }
 
+func (a *MessageAttachment) TitleHtml() template.HTML {
+	return textToHtml(a.Title, true, a.slackClient)
+}
+
 func (a *MessageAttachment) TextHtml() template.HTML {
 	return textToHtml(a.Text, true, a.slackClient)
 }
