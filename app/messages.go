@@ -235,6 +235,10 @@ func (mg *MessageGroup) shouldContainMessage(message *Message, messageAuthor *sl
 	return true
 }
 
+func (mg *MessageGroup) FromBot() bool {
+	return mg.Messages[0].SubType == "bot_message"
+}
+
 func (mg *MessageGroup) DisplayTimestamp() string {
 	return safeFormattedDate(mg.Messages[0].TimestampTime().Format(
 		MessageGroupDisplayTimestampFormat))
