@@ -125,6 +125,16 @@
           "width": "100%"
         }
       }
+    },
+    "reaction": {
+      "display": "inline-block",
+      "border": "solid 1px #eee",
+      "border-radius": "5px",
+      "padding": "1px 3px",
+      "count": {
+        "color": "#999",
+        "font-size": "9pt"
+      }
     }
   },
   "email-footer": {

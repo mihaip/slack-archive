@@ -105,7 +105,7 @@ func textToHtml(text string, truncate bool, slackClient *slack.Client) template.
 		line = emojiRegexp.ReplaceAllStringFunc(line, func(emojiString string) string {
 			shortName := emojiString[1 : len(emojiString)-1]
 			if emoji, ok := emojiByShortName[shortName]; ok {
-				return fmt.Sprintf("<span title=\"%s\">&#x%s;</a>", emojiString, emoji.UnicodeCodePointHex)
+				return fmt.Sprintf("<span title=\"%s\">&#x%s;</span>", emojiString, emoji.UnicodeCodePointHex)
 			}
 			return emojiString
 		})
@@ -161,6 +161,15 @@ func (m *Message) MessageFile() *MessageFile {
 		return nil
 	}
 	return &MessageFile{m.File, m.slackClient, m.account}
+}
+
+func (m *Message) MessageReactions() []*MessageReaction {
+	reactions := make([]*MessageReaction, 0, len(m.Reactions))
+	for i := range m.Reactions {
+		reactions = append(
+			reactions, &MessageReaction{&m.Reactions[i], m.slackClient})
+	}
+	return reactions
 }
 
 type MessageAttachment struct {
@@ -237,6 +246,35 @@ func (f *MessageFile) ThumbnailWidth() int {
 
 func (f *MessageFile) ThumbnailHeight() int {
 	return f.Thumb360H
+}
+
+type MessageReaction struct {
+	*slack.ItemReaction
+	slackClient *slack.Client
+}
+
+func (r *MessageReaction) Emoji() template.HTML {
+	if emoji, ok := emojiByShortName[r.Name]; ok {
+		return template.HTML(fmt.Sprintf("&#x%s;", emoji.UnicodeCodePointHex))
+	}
+	return template.HTML(r.Name)
+}
+
+func (r *MessageReaction) Summary() (string, error) {
+	userLookup, err := newUserLookup(r.slackClient)
+	if err != nil {
+		return "", err
+	}
+	names := make([]string, len(r.Users))
+	for i := range r.Users {
+		if user, err := userLookup.GetUser(r.Users[i]); err == nil {
+			names[i] = user.Name
+		} else {
+			names[i] = r.Users[i]
+		}
+	}
+	return fmt.Sprintf("%s reacted with :%s:",
+		strings.Join(names, ", "), r.Name), nil
 }
 
 type MessageGroup struct {

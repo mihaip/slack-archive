@@ -1,0 +1,8 @@
+{{define "reaction"}}
+
+<div style="{{style "message.reaction"}}" title={{.Summary}}>
+  {{.Emoji}}
+  <span style="{{style "message.reaction.count"}}">{{.Count}}</span>
+</div>
+
+{{end}}

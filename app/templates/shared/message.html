@@ -10,6 +10,15 @@
   {{if .MessageFile}}
     {{template "file" .MessageFile}}
   {{end}}
+
+  {{if .Reactions}}
+    <div style="{{style "message.reactions"}}">
+      {{range .MessageReactions}}
+        {{template "reaction" .}}
+      {{end}}
+    </div>
+  {{end}}
+
 </div>
 
 {{end}}
