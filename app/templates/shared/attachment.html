@@ -44,6 +44,10 @@
         <img src="{{.ImageURL}}" alt="" style="{{style "message.attachment.image"}}">
       </a>
     {{end}}
+
+    {{if .Fields}}
+      {{.FieldsHtml}}
+    {{end}}
   </div>
 </div>
 

@@ -169,11 +169,51 @@ type MessageAttachment struct {
 }
 
 func (a *MessageAttachment) TitleHtml() template.HTML {
-	return textToHtml(a.Title, true, a.slackClient)
+	return textToHtml(a.Title, false, a.slackClient)
 }
 
 func (a *MessageAttachment) TextHtml() template.HTML {
 	return textToHtml(a.Text, true, a.slackClient)
+}
+
+func (a *MessageAttachment) FieldsHtml() template.HTML {
+	htmlPieces := []string{}
+	inTable := false
+	currentRowCellCount := 0
+	for _, field := range a.Fields {
+		fieldHtml := fmt.Sprintf(
+			"<div style='%s'>%s</div><div>%s</div>",
+			Style("message.attachment.field.title"),
+			textToHtml(field.Title, false, a.slackClient),
+			textToHtml(field.Value, false, a.slackClient))
+		if field.Short {
+			if !inTable {
+				htmlPieces = append(htmlPieces, fmt.Sprintf(
+					"<table style='%s'><tr>",
+					Style("message.attachment.field.table")))
+				inTable = true
+				currentRowCellCount = 0
+			}
+			if currentRowCellCount == 2 {
+				htmlPieces = append(htmlPieces, "</tr><tr>")
+				currentRowCellCount = 0
+			}
+			htmlPieces = append(htmlPieces, "<td width='250'>")
+			htmlPieces = append(htmlPieces, fieldHtml)
+			htmlPieces = append(htmlPieces, "</td>")
+			currentRowCellCount += 1
+		} else {
+			if inTable {
+				htmlPieces = append(htmlPieces, "</tr></table>")
+				inTable = false
+			}
+			htmlPieces = append(htmlPieces, fieldHtml)
+		}
+	}
+	if inTable {
+		htmlPieces = append(htmlPieces, "</tr></table>")
+	}
+	return template.HTML(strings.Join(htmlPieces, ""))
 }
 
 type MessageFile struct {
