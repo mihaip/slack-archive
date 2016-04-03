@@ -352,11 +352,18 @@ func (archive *ConversationArchive) DisplayDate() string {
 	return safeFormattedDate(archive.EndTime.Format(ConversationArchiveDateFormat))
 }
 
-func newConversationArchive(conversation Conversation, slackClient *slack.Client, account *Account) (*ConversationArchive, error) {
+func newConversationArchive(conversation Conversation, slackClient *slack.Client, account *Account, devMode bool) (*ConversationArchive, error) {
 	messages := make([]*slack.Message, 0)
 	now := time.Now().In(account.TimezoneLocation)
-	archiveStartTime := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location()).AddDate(0, 0, -1)
-	archiveEndTime := archiveStartTime.AddDate(0, 0, 1).Add(-time.Second)
+	var archiveStartTime time.Time
+	var archiveEndTime time.Time
+	if !devMode {
+		archiveStartTime = time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location()).AddDate(0, 0, -1)
+		archiveEndTime = archiveStartTime.AddDate(0, 0, 1).Add(-time.Second)
+	} else {
+		archiveStartTime = now.AddDate(0, 0, -1)
+		archiveEndTime = now
+	}
 
 	params := slack.HistoryParameters{
 		Latest:    fmt.Sprintf("%d", archiveEndTime.Unix()),

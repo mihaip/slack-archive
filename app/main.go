@@ -235,7 +235,7 @@ func conversationArchiveHandler(w http.ResponseWriter, r *http.Request, state *A
 		return SlackFetchError(err, "conversation")
 	}
 
-	archive, err := newConversationArchive(conversation, state.SlackClient, state.Account)
+	archive, err := newConversationArchive(conversation, state.SlackClient, state.Account, r.FormValue("dev") == "1")
 	if err != nil {
 		return SlackFetchError(err, "archive")
 	}
@@ -408,7 +408,7 @@ func sendConversationArchive(conversation Conversation, account *Account, c appe
 	if emailAddress == "disabled" {
 		return false, nil
 	}
-	archive, err := newConversationArchive(conversation, slackClient, account)
+	archive, err := newConversationArchive(conversation, slackClient, account, false)
 	if err != nil {
 		return false, err
 	}
