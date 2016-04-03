@@ -104,8 +104,8 @@ func textToHtml(text string, truncate bool, slackClient *slack.Client) template.
 		})
 		line = emojiRegexp.ReplaceAllStringFunc(line, func(emojiString string) string {
 			shortName := emojiString[1 : len(emojiString)-1]
-			if emoji, ok := emojiByShortName[shortName]; ok {
-				return fmt.Sprintf("<span title=\"%s\">&#x%s;</span>", emojiString, emoji.UnicodeCodePointHex)
+			if emojiHtml, err := getEmojiHtml(shortName, slackClient); err == nil {
+				return fmt.Sprintf("<span title=\"%s\">%s</span>", emojiString, emojiHtml)
 			}
 			return emojiString
 		})
@@ -254,8 +254,8 @@ type MessageReaction struct {
 }
 
 func (r *MessageReaction) Emoji() template.HTML {
-	if emoji, ok := emojiByShortName[r.Name]; ok {
-		return template.HTML(fmt.Sprintf("&#x%s;", emoji.UnicodeCodePointHex))
+	if emojiHtml, err := getEmojiHtml(r.Name, r.slackClient); err == nil {
+		return template.HTML(emojiHtml)
 	}
 	return template.HTML(r.Name)
 }

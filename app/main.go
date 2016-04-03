@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 
 	"appengine"
@@ -123,21 +124,24 @@ func signInHandler(w http.ResponseWriter, r *http.Request) *AppError {
 	authCodeUrl, _ := url.Parse("https://slack.com/oauth/authorize")
 	authCodeUrlQuery := authCodeUrl.Query()
 	authCodeUrlQuery.Set("client_id", slackOAuthConfig.ClientId)
-	authCodeUrlQuery.Set("scope",
+	authCodeUrlQuery.Set("scope", strings.Join([]string{
 		// Basic user info
-		"users:read "+
-			// Team info
-			"team:read "+
-			// Channel archive
-			"channels:read channels:history "+
-			// Private channel archive
-			"groups:read groups:history "+
-			// Direct message archive
-			"im:read im:history "+
-			// Multi-party direct mesage archive
-			"mpim:read mpim:history "+
-			// Read file thumbnail
-			"files:read")
+		"users:read",
+		// Team info
+		"team:read",
+		// Channel archive
+		"channels:read channels:history",
+		// Private channel archive
+		"groups:read groups:history",
+		// Direct message archive
+		"im:read im:history",
+		// Multi-party direct mesage archive
+		"mpim:read mpim:history",
+		// Read file thumbnail
+		"files:read",
+		// Read custom emoji
+		"emoji:read",
+	}, " "))
 	redirectUrlString, _ := AbsoluteRouteUrl("slack-callback")
 	redirectUrl, _ := url.Parse(redirectUrlString)
 	if continueUrl := r.FormValue("continue_url"); continueUrl != "" {

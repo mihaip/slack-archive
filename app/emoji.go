@@ -2,8 +2,12 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
+	"fmt"
 	"io/ioutil"
 	"log"
+
+	"github.com/nlopes/slack"
 )
 
 type Emoji struct {
@@ -32,4 +36,19 @@ func loadEmoji() map[string]*Emoji {
 		}
 	}
 	return result
+}
+
+func getEmojiHtml(shortName string, slackClient *slack.Client) (string, error) {
+	if emoji, ok := emojiByShortName[shortName]; ok {
+		return fmt.Sprintf("&#x%s;", emoji.UnicodeCodePointHex), nil
+	}
+	customEmojiMap, err := slackClient.GetEmoji()
+	if err != nil {
+		return "", err
+	}
+	if emojiImageUrl, ok := customEmojiMap[shortName]; ok {
+		return fmt.Sprintf("<img src='%s' alt='' width='20' height='20' "+
+			"style='vertical-align:text-bottom'>", emojiImageUrl), nil
+	}
+	return "", errors.New(fmt.Sprintf("Emoji '%s' not found", shortName))
 }
