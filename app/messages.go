@@ -18,7 +18,7 @@ const (
 	MessageTextBlockquotePrefix1       = "&gt;"
 	MessageTextBlockquotePrefix2       = ">>>"
 	MessageTextControlRegexp           = "<(.*?)>"
-	MessageTextEmojiRegexp             = ":([a-z_]+):"
+	MessageTextEmojiRegexp             = ":([a-z0-9_\\-+]+):"
 )
 
 func textToHtml(text string, truncate bool, slackClient *slack.Client) template.HTML {
