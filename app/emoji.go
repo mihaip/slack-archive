@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"strings"
 
 	"github.com/nlopes/slack"
 )
@@ -40,7 +41,8 @@ func loadEmoji() map[string]*Emoji {
 
 func getEmojiHtml(shortName string, slackClient *slack.Client) (string, error) {
 	if emoji, ok := emojiByShortName[shortName]; ok {
-		return fmt.Sprintf("&#x%s;", emoji.UnicodeCodePointHex), nil
+		// Convert dash-separated hex digits until HTML entities.
+		return fmt.Sprintf("&#x%s;", strings.Replace(emoji.UnicodeCodePointHex, "-", ";&#x", -1)), nil
 	}
 	customEmojiMap, err := slackClient.GetEmoji()
 	if err != nil {
