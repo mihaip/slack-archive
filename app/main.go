@@ -278,8 +278,12 @@ func archiveCronHandler(w http.ResponseWriter, r *http.Request) *AppError {
 		return InternalError(err, "Could not look up accounts")
 	}
 	for _, account := range accounts {
-		c.Infof("Enqueing task for %s...", account.SlackUserId)
-		sendArchiveFunc.Call(c, account.SlackUserId)
+		now := time.Now().In(account.TimezoneLocation)
+		oneHourAgo := now.Add(-time.Hour)
+		if now.Day() != oneHourAgo.Day() {
+			c.Infof("Enqueing task for %s...", account.SlackUserId)
+			sendArchiveFunc.Call(c, account.SlackUserId)
+		}
 	}
 	fmt.Fprint(w, "Done")
 	return nil
