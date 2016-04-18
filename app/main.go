@@ -375,6 +375,17 @@ func sendArchive(account *Account, c appengine.Context) (int, error) {
 }
 
 func sendArchiveErrorMail(e error, c appengine.Context, slackUserId string) {
+	if strings.Contains(e.Error(), "Canceled") ||
+		strings.Contains(e.Error(), "invalid security ticket") {
+		// Ignore these errors, they are internal to App Engine.
+		// "Canceled" may happen when a urlfetch is still going on after the
+		// request timeout fires, but for us it happens within a few seconds.
+		// "invalid security ticket" may happen when using an App Engine context
+		// after the HTTP request for it finishes, but we're not doing that.
+		// Since delayed tasks will be retried if they return an error (and
+		// these errors are transient), we don't want to know about them.
+		return
+	}
 	errorMessage := &mail.Message{
 		Sender:  "Slack Archive Admin <admin@slack-archive.appspotmail.com>",
 		To:      []string{"mihai.parparita@gmail.com"},
