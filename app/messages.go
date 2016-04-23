@@ -19,7 +19,27 @@ const (
 	MessageTextBlockquotePrefix2       = ">>>"
 	MessageTextControlRegexp           = "<(.*?)>"
 	MessageTextEmojiRegexp             = ":([a-z0-9_\\-+]+):"
+	MessageTextBoldRegexp              = "\\*([^*]+)\\*"
+	MessageTextItalicRegexp            = "_([^_]+)_"
+	MessageTextStrikethroughRegexp     = "~([^~]+)~"
+	MessageTextInlineCodeRegexp        = "`([^`]+)`"
 )
+
+var controlRegexp *regexp.Regexp
+var emojiRegexp *regexp.Regexp
+var boldRegexp *regexp.Regexp
+var italicRegexp *regexp.Regexp
+var strikethroughRegexp *regexp.Regexp
+var inlineCodeRegexp *regexp.Regexp
+
+func init() {
+	controlRegexp = regexp.MustCompile(MessageTextControlRegexp)
+	emojiRegexp = regexp.MustCompile(MessageTextEmojiRegexp)
+	boldRegexp = regexp.MustCompile(MessageTextBoldRegexp)
+	italicRegexp = regexp.MustCompile(MessageTextItalicRegexp)
+	strikethroughRegexp = regexp.MustCompile(MessageTextStrikethroughRegexp)
+	inlineCodeRegexp = regexp.MustCompile(MessageTextInlineCodeRegexp)
+}
 
 func textToHtml(text string, truncate bool, slackClient *slack.Client) template.HTML {
 	if truncate && len(text) > 700 {
@@ -30,8 +50,6 @@ func textToHtml(text string, truncate bool, slackClient *slack.Client) template.
 		lines = append(lines[:5], "...")
 	}
 	htmlPieces := []string{}
-	controlRegexp := regexp.MustCompile(MessageTextControlRegexp)
-	emojiRegexp := regexp.MustCompile(MessageTextEmojiRegexp)
 	for i, line := range lines {
 		linePrefix := ""
 		lineSuffix := ""
@@ -109,6 +127,12 @@ func textToHtml(text string, truncate bool, slackClient *slack.Client) template.
 			}
 			return emojiString
 		})
+		line = boldRegexp.ReplaceAllString(line, "<b>$1</b>")
+		line = italicRegexp.ReplaceAllString(line, "<i>$1</i>")
+		line = strikethroughRegexp.ReplaceAllString(line, "<del>$1</del>")
+		line = inlineCodeRegexp.ReplaceAllString(
+			line,
+			fmt.Sprintf("<code style='%s'>$1</code>", Style("message.code")))
 
 		htmlPieces = append(htmlPieces, linePrefix)
 		// Slack's API claims that all HTML is already escaped

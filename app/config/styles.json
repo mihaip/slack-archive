@@ -80,6 +80,11 @@
       "color": "#4183c4",
       "text-decoration": "none"
     },
+    "code": {
+      "color": "#c25",
+      "background-color": "#f7f7f9",
+      "border": "solid 1px #e1e1e8"
+    },
     "attachment": {
       "margin": "2px 0",
       "overflow": "hidden",
