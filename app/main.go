@@ -177,11 +177,12 @@ func slackOAuthCallbackHandler(w http.ResponseWriter, r *http.Request) *AppError
 		return SlackFetchError(err, "user")
 	}
 
-	if authTest.Team != "Partyslack" {
+	c := appengine.NewContext(r)
+	if authTest.Team != "Partyslack" && authTest.Team != "Quip" {
+		c.Warningf("Non-whitelisted team %s used", authTest.Team)
 		return templates["team-not-on-whitelist"].Render(w, map[string]interface{}{})
 	}
 
-	c := appengine.NewContext(r)
 	account, err := getAccount(c, authTest.UserID)
 	if err != nil && err != datastore.ErrNoSuchEntity {
 		return InternalError(err, "Could not look up user")
