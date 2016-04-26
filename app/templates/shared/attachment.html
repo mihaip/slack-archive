@@ -2,6 +2,12 @@
 
 <div style="{{style "message.attachment"}}">
 
+  {{if .Pretext}}
+    <div style="{{style "message.attachment.pretext"}}">
+      {{.PretextHtml}}
+    </div>
+  {{end}}
+
   <div style="{{style "message.attachment.body"}}">
     {{if .ThumbURL}}
       <img src="{{.ThumbURL}}" alt="" style="{{style "message.attachment.thumb"}}">

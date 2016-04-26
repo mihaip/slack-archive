@@ -205,6 +205,10 @@ func (a *MessageAttachment) TitleHtml() template.HTML {
 	return textToHtml(a.Title, false, a.slackClient)
 }
 
+func (a *MessageAttachment) PretextHtml() template.HTML {
+	return textToHtml(a.Pretext, false, a.slackClient)
+}
+
 func (a *MessageAttachment) TextHtml() template.HTML {
 	return textToHtml(a.Text, true, a.slackClient)
 }
