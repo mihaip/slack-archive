@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"strings"
 
 	"github.com/nlopes/slack"
@@ -34,6 +35,31 @@ func newUserLookup(slackClient *slack.Client) (*UserLookup, error) {
 func (lookup *UserLookup) GetUser(userId string) (*slack.User, error) {
 	user, ok := lookup.usersById[userId]
 	if !ok {
+		if strings.HasPrefix(userId, "B") {
+			// rtm.start is the only place where bots are returned, so use it
+			// to look up bot IDs.
+			info, _, err := lookup.slackClient.StartRTM()
+			if err == nil {
+				for _, bot := range info.Bots {
+					if bot.ID == userId {
+						// Synthesize a user object out of a bot, so that the
+						// rest of the code doesn't have to know the difference.
+						botUser := &slack.User{
+							ID:   bot.ID,
+							Name: bot.Name,
+							Profile: slack.UserProfile{
+								Image48: bot.Icons.Image48,
+								Image72: bot.Icons.Image72,
+							},
+						}
+						lookup.usersById[userId] = botUser
+						return botUser, nil
+					}
+				}
+			} else {
+				log.Printf("Error when using rtm.start: %s", err)
+			}
+		}
 		user, err := lookup.slackClient.GetUserInfo(userId)
 		if err != nil {
 			return nil, err
