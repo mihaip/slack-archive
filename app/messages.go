@@ -19,7 +19,7 @@ const (
 	MessageTextBlockquotePrefix2       = ">>>"
 	MessageTextControlRegexp           = "<(.*?)>"
 	MessageTextEmojiRegexp             = ":([a-z0-9_\\-+]+):"
-	MessageTextBoldRegexp              = "\\*([^*<<>]+)\\*"
+	MessageTextBoldRegexp              = "\\*([^*<>]+)\\*"
 	MessageTextItalicRegexp            = "_([^_<>]+)_"
 	MessageTextStrikethroughRegexp     = "~([^~<>]+)~"
 	MessageTextInlineCodeRegexp        = "`([^`<>]+)`"
