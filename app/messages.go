@@ -117,8 +117,12 @@ func textToHtml(text string, truncate bool, slackClient *slack.Client) template.
 			if anchorText == "" {
 				anchorText = control
 			}
+			// Escape underscores to avoid triggering the italics regexp if
+			// a filename has underscores in it.
 			return fmt.Sprintf("<a href='%s' style='%s'>%s</a>",
-				control, Style("message.link"), anchorText)
+				strings.Replace(control, "_", "%5F", -1),
+				Style("message.link"),
+				strings.Replace(anchorText, "_", "&#95;", -1))
 		})
 		line = emojiRegexp.ReplaceAllStringFunc(line, func(emojiString string) string {
 			shortName := emojiString[1 : len(emojiString)-1]
