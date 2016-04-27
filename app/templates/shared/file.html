@@ -2,15 +2,20 @@
 
 <div style="{{style "message.file"}}">
 
-  <a href="{{.URLPrivate}}">
-    {{if .ThumbnailUrl}}
+  {{if .ThumbnailUrl}}
+    <a href="{{.URLPrivate}}">
       <img src="{{.ThumbnailUrl}}" alt=""
           style="{{style "message.file.thumbnail"}}"
           width="{{.ThumbnailWidth}}" height="{{.ThumbnailHeight}}">
-    {{else}}
-      {{.Name}}
-    {{end}}
-  </a>
+    </a>
+  {{else}}
+    <div style="{{style "message.file.preview"}}">
+      <a href="{{.URLPrivate}}" style="{{style "message.file.preview.title"}}">
+        {{.Title}}
+      </a>
+      {{.PreviewHtml}}
+    </div>
+  {{end}}
 
 </div>
 

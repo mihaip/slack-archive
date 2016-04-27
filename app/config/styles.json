@@ -132,6 +132,21 @@
         }
       }
     },
+    "file": {
+        "preview": {
+            "margin": "2px 0 4px",
+            "border": "solid 1px #ccc",
+            "border-radius": "6px",
+            "padding": "0 15px",
+            "color": "#333",
+            "title": {
+                "font-size": "110%",
+                "font-weight": "bold",
+                "margin-top": "4px",
+                "display": "block"
+            }
+        }
+    },
     "reaction": {
       "display": "inline-block",
       "border": "solid 1px #eee",

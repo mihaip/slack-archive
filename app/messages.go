@@ -260,6 +260,9 @@ type MessageFile struct {
 }
 
 func (f *MessageFile) ThumbnailUrl() (string, error) {
+	if f.Thumb360 == "" {
+		return "", nil
+	}
 	ref := FileUrlRef{f.ID, f.account.SlackUserId}
 	encodedRef, err := ref.Encode()
 	if err != nil {
@@ -274,6 +277,13 @@ func (f *MessageFile) ThumbnailWidth() int {
 
 func (f *MessageFile) ThumbnailHeight() int {
 	return f.Thumb360H
+}
+
+func (f *MessageFile) PreviewHtml() template.HTML {
+	if f.PreviewHighlight != "" {
+		return template.HTML(f.PreviewHighlight)
+	}
+	return template.HTML(f.Preview)
 }
 
 type MessageReaction struct {
