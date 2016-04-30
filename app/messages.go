@@ -205,6 +205,24 @@ type MessageAttachment struct {
 	slackClient *slack.Client
 }
 
+func (a *MessageAttachment) BodyStyle() template.CSS {
+	style := Style("message.attachment.body")
+	if len(a.Color) > 0 {
+		var color string
+		if a.Color == "good" {
+			color = "#2aa146"
+		} else if a.Color == "warning" {
+			color = "#de9e31"
+		} else if a.Color == "danger" {
+			color = "#d50200"
+		} else {
+			color = "#" + a.Color
+		}
+		style += template.CSS(fmt.Sprintf("border-color: %s", color))
+	}
+	return style
+}
+
 func (a *MessageAttachment) TitleHtml() template.HTML {
 	return textToHtml(a.Title, false, a.slackClient)
 }

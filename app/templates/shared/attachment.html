@@ -8,7 +8,7 @@
     </div>
   {{end}}
 
-  <div style="{{style "message.attachment.body"}}">
+  <div style="{{.BodyStyle}}">
     {{if .ThumbURL}}
       <img src="{{.ThumbURL}}" alt="" style="{{style "message.attachment.thumb"}}">
     {{end}}
