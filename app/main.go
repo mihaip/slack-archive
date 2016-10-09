@@ -125,31 +125,22 @@ func signInHandler(w http.ResponseWriter, r *http.Request) *AppError {
 	authCodeUrlQuery := authCodeUrl.Query()
 	authCodeUrlQuery.Set("client_id", slackOAuthConfig.ClientId)
 	authCodeUrlQuery.Set("scope", strings.Join([]string{
-		// We need to use rtm.start to look up bot users, since they are not
-		// provided anywhere else in the API. This means that we need the
-		// "client" OAuth scope.
-		"client",
-		// It would be nice if we could instead use more fine-grained scopes
-		// for just the data that we need. If Slack does eventually allow
-		// more direct bot lookup, the scopes we would need are:
-		/*
-			// Basic user info
-			"users:read",
-			// Team info
-			"team:read",
-			// Channel archive
-			"channels:read channels:history",
-			// Private channel archive
-			"groups:read groups:history",
-			// Direct message archive
-			"im:read im:history",
-			// Multi-party direct mesage archive
-			"mpim:read mpim:history",
-			// Read file thumbnail
-			"files:read",
-			// Read custom emoji
-			"emoji:read",
-		*/
+		// Basic user info
+		"users:read",
+		// Team info
+		"team:read",
+		// Channel archive
+		"channels:read channels:history",
+		// Private channel archive
+		"groups:read groups:history",
+		// Direct message archive
+		"im:read im:history",
+		// Multi-party direct mesage archive
+		"mpim:read mpim:history",
+		// Read file thumbnail
+		"files:read",
+		// Read custom emoji
+		"emoji:read",
 	}, " "))
 	redirectUrlString, _ := AbsoluteRouteUrl("slack-callback")
 	redirectUrl, _ := url.Parse(redirectUrlString)
