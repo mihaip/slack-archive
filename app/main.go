@@ -178,7 +178,7 @@ func slackOAuthCallbackHandler(w http.ResponseWriter, r *http.Request) *AppError
 	}
 
 	c := appengine.NewContext(r)
-	if authTest.Team != "Partyslack" && authTest.Team != "Quip" && authTest.Team != "More Partier More Chattier" && authTest.Team != "Partiest Chattiest" {
+	if authTest.Team != "Partyslack" && authTest.Team != "Quip" && authTest.Team != "More Partier More Chattier" && authTest.Team != "Partiest Chattiest" && authTest.Team != "DanceDeets" {
 		c.Warningf("Non-whitelisted team %s used", authTest.Team)
 		return templates["team-not-on-whitelist"].Render(w, map[string]interface{}{})
 	}
