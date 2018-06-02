@@ -127,6 +127,9 @@ func signInHandler(w http.ResponseWriter, r *http.Request) *AppError {
 	authCodeUrlQuery.Set("scope", strings.Join([]string{
 		// Basic user info
 		"users:read",
+		// User email address
+		// (after https://api.slack.com/changelog/2017-04-narrowing-email-access)
+		"users:read.email",
 		// Team info
 		"team:read",
 		// Channel archive
