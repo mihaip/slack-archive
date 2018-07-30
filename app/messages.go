@@ -185,6 +185,9 @@ func (m *Message) MessageAttachments() []*MessageAttachment {
 }
 
 func (m *Message) MessageFile() *MessageFile {
+	if len(m.Files) > 0 {
+		return &MessageFile{&m.Files[0], m.slackClient, m.account}
+	}
 	if m.File == nil {
 		return nil
 	}
