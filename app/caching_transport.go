@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"crypto/md5"
 	"fmt"
 	"io"
@@ -12,8 +13,8 @@ import (
 	"strings"
 	"time"
 
-	"appengine"
-	"appengine/memcache"
+	"google.golang.org/appengine/log"
+	"google.golang.org/appengine/memcache"
 )
 
 // Simple http.RoundTripper implementation which wraps an existing transport and
@@ -21,7 +22,7 @@ import (
 // iteration cycle during development.
 type CachingTransport struct {
 	Transport http.RoundTripper
-	Context   appengine.Context
+	Context   context.Context
 }
 
 func (t *CachingTransport) RoundTrip(req *http.Request) (resp *http.Response, err error) {
@@ -57,7 +58,7 @@ func (t *CachingTransport) RoundTrip(req *http.Request) (resp *http.Response, er
 
 	cachedRespItem, err := memcache.Get(t.Context, cacheKey)
 	if err != nil && err != memcache.ErrCacheMiss {
-		t.Context.Errorf("Error getting cached response: %v", err)
+		log.Errorf(t.Context, "Error getting cached response: %v", err)
 		return t.Transport.RoundTrip(req)
 	}
 	if err == nil {
@@ -66,17 +67,17 @@ func (t *CachingTransport) RoundTrip(req *http.Request) (resp *http.Response, er
 		if err == nil {
 			return resp, nil
 		} else {
-			t.Context.Errorf("Error readings bytes for cached response: %v", err)
+			log.Errorf(t.Context, "Error readings bytes for cached response: %v", err)
 		}
 	}
-	t.Context.Infof("Fetching %s", req.URL)
+	log.Infof(t.Context, "Fetching %s", req.URL)
 	resp, err = t.Transport.RoundTrip(req)
 	if err != nil || resp.StatusCode != 200 {
 		return
 	}
 	respBytes, err := httputil.DumpResponse(resp, true)
 	if err != nil {
-		t.Context.Errorf("Error dumping bytes for cached response: %v", err)
+		log.Errorf(t.Context, "Error dumping bytes for cached response: %v", err)
 		return resp, nil
 	}
 	var expiration time.Duration = time.Hour
@@ -92,7 +93,7 @@ func (t *CachingTransport) RoundTrip(req *http.Request) (resp *http.Response, er
 			Expiration: expiration,
 		})
 	if err != nil {
-		t.Context.Errorf("Error setting cached response for %s (cache key %s, %d bytes to cache): %v",
+		log.Errorf(t.Context, "Error setting cached response for %s (cache key %s, %d bytes to cache): %v",
 			req.URL, cacheKey, len(respBytes), err)
 	}
 	return resp, nil

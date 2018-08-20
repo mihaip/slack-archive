@@ -1,21 +1,23 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"html/template"
 	"io/ioutil"
-	"log"
+	log_ "log"
 	"net/http"
 	"path/filepath"
 	"runtime/debug"
 	"strings"
 	"time"
 
-	"appengine"
-	"appengine/mail"
-	"appengine/urlfetch"
+	"google.golang.org/appengine"
+	"google.golang.org/appengine/log"
+	"google.golang.org/appengine/mail"
+	"google.golang.org/appengine/urlfetch"
 
 	"github.com/gorilla/sessions"
 	"github.com/nlopes/slack"
@@ -148,11 +150,10 @@ type AppHandler func(http.ResponseWriter, *http.Request) *AppError
 func (fn AppHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	defer panicRecovery(w, r)
 	makeUncacheable(w)
-	c := appengine.NewContext(r)
+	c, _ := context.WithTimeout(appengine.NewContext(r), time.Second*60)
 	// The Slack API uses the default HTTP transport, so we need to override it
 	// to get it to work on App Engine.
 	appengineTransport := &urlfetch.Transport{Context: c}
-	appengineTransport.Deadline = time.Second * 60
 	http.DefaultTransport = &CachingTransport{
 		Transport: appengineTransport,
 		Context:   c,
@@ -212,7 +213,7 @@ func handleAppError(e *AppError, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if e.Type != AppErrorTypeBadInput {
-		c.Errorf("%v", e.Error)
+		log.Errorf(c, "%v", e.Error)
 		if !appengine.IsDevAppServer() {
 			sendAppErrorMail(e, r)
 		}
@@ -223,11 +224,11 @@ func handleAppError(e *AppError, w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(e.Code)
 		templateError := templates["internal-error"].Render(w, data)
 		if templateError != nil {
-			c.Errorf("Error %s rendering error template.", templateError.Error.Error())
+			log.Errorf(c, "Error %s rendering error template.", templateError.Error.Error())
 		}
 		return
 	} else {
-		c.Infof("%v", e.Error)
+		log.Infof(c, "%v", e.Error)
 	}
 	http.Error(w, e.Message, e.Code)
 }
@@ -243,7 +244,7 @@ func sendAppErrorMail(e *AppError, r *http.Request) {
 		Body: fmt.Sprintf(`Request URL: %s
 HTTP status code: %d
 Error type: %d
-User ID: %d
+User ID: %s
 
 Message: %s
 Error: %s`,
@@ -257,7 +258,7 @@ Error: %s`,
 	c := appengine.NewContext(r)
 	err := mail.Send(c, errorMessage)
 	if err != nil {
-		c.Errorf("Error %s sending error email.", err.Error())
+		log.Errorf(c, "Error %s sending error email.", err.Error())
 	}
 }
 
@@ -329,11 +330,11 @@ func loadTemplates() (templates map[string]*Template) {
 	}
 	sharedFileNames, err := filepath.Glob("templates/shared/*.html")
 	if err != nil {
-		log.Panicf("Could not read shared template file names %s", err.Error())
+		log_.Panicf("Could not read shared template file names %s", err.Error())
 	}
 	templateFileNames, err := filepath.Glob("templates/*.html")
 	if err != nil {
-		log.Panicf("Could not read template file names %s", err.Error())
+		log_.Panicf("Could not read template file names %s", err.Error())
 	}
 	templates = make(map[string]*Template)
 	for _, templateFileName := range templateFileNames {
@@ -350,7 +351,7 @@ func loadTemplates() (templates map[string]*Template) {
 		_, templateFileName = filepath.Split(fileNames[0])
 		parsedTemplate, err := template.New(templateFileName).Funcs(funcMap).ParseFiles(fileNames...)
 		if err != nil {
-			log.Printf("Could not parse template files for %s: %s", templateFileName, err.Error())
+			log_.Printf("Could not parse template files for %s: %s", templateFileName, err.Error())
 		}
 		templates[templateName] = &Template{parsedTemplate}
 	}
@@ -360,13 +361,13 @@ func loadTemplates() (templates map[string]*Template) {
 func loadStyles() (result map[string]template.CSS) {
 	stylesBytes, err := ioutil.ReadFile("config/styles.json")
 	if err != nil {
-		log.Panicf("Could not read styles JSON: %s", err.Error())
+		log_.Panicf("Could not read styles JSON: %s", err.Error())
 	}
 	var stylesJson interface{}
 	err = json.Unmarshal(stylesBytes, &stylesJson)
 	result = make(map[string]template.CSS)
 	if err != nil {
-		log.Printf("Could not parse styles JSON %s: %s", stylesBytes, err.Error())
+		log_.Printf("Could not parse styles JSON %s: %s", stylesBytes, err.Error())
 		return
 	}
 	var parse func(string, map[string]interface{}, *string)
@@ -383,7 +384,7 @@ func loadStyles() (result map[string]template.CSS) {
 				parse(path+k, v.(map[string]interface{}), &nestedStyle)
 				result[path+k] = template.CSS(nestedStyle)
 			default:
-				log.Printf("Unexpected type for %s in styles JSON, ignoring", k)
+				log_.Printf("Unexpected type for %s in styles JSON, ignoring", k)
 			}
 		}
 	}

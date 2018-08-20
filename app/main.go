@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"html/template"
 	"io"
@@ -10,11 +11,12 @@ import (
 	"strings"
 	"time"
 
-	"appengine"
-	"appengine/datastore"
-	"appengine/delay"
-	"appengine/mail"
-	"appengine/urlfetch"
+	"google.golang.org/appengine"
+	"google.golang.org/appengine/datastore"
+	"google.golang.org/appengine/delay"
+	"google.golang.org/appengine/log"
+	"google.golang.org/appengine/mail"
+	"google.golang.org/appengine/urlfetch"
 
 	"github.com/gorilla/mux"
 	"github.com/gorilla/sessions"
@@ -182,7 +184,7 @@ func slackOAuthCallbackHandler(w http.ResponseWriter, r *http.Request) *AppError
 
 	c := appengine.NewContext(r)
 	if authTest.Team != "Partyslack" && authTest.Team != "Quip" && authTest.Team != "More Partier More Chattier" && authTest.Team != "Partiest Chattiest" && authTest.Team != "DanceDeets" && authTest.Team != "Spring '17 Babies" {
-		c.Warningf("Non-whitelisted team %s used", authTest.Team)
+		log.Warningf(c, "Non-whitelisted team %s used", authTest.Team)
 		return templates["team-not-on-whitelist"].Render(w, map[string]interface{}{})
 	}
 
@@ -285,7 +287,7 @@ func archiveCronHandler(w http.ResponseWriter, r *http.Request) *AppError {
 		now := time.Now().In(account.TimezoneLocation)
 		oneHourAgo := now.Add(-time.Hour)
 		if now.Day() != oneHourAgo.Day() {
-			c.Infof("Enqueing task for %s...", account.SlackUserId)
+			log.Infof(c, "Enqueing task for %s...", account.SlackUserId)
 			sendArchiveFunc.Call(c, account.SlackUserId)
 		}
 	}
@@ -295,17 +297,17 @@ func archiveCronHandler(w http.ResponseWriter, r *http.Request) *AppError {
 
 var sendArchiveFunc = delay.Func(
 	"sendArchive",
-	func(c appengine.Context, slackUserId string) error {
-		c.Infof("Sending digest for %s...", slackUserId)
+	func(c context.Context, slackUserId string) error {
+		log.Infof(c, "Sending digest for %s...", slackUserId)
 		account, err := getAccount(c, slackUserId)
 		if err != nil {
-			c.Errorf("  Error looking up account: %s", err.Error())
+			log.Errorf(c, "  Error looking up account: %s", err.Error())
 			return err
 		}
 		slackClient := account.NewSlackClient(c)
 		conversations, err := getConversations(slackClient, account)
 		if err != nil {
-			c.Errorf("  Error looking up conversations: %s", err.Error())
+			log.Errorf(c, "  Error looking up conversations: %s", err.Error())
 			if !appengine.IsDevAppServer() {
 				sendArchiveErrorMail(err, c, slackUserId)
 			}
@@ -317,27 +319,27 @@ var sendArchiveFunc = delay.Func(
 				sendConversationArchiveFunc.Call(
 					c, account.SlackUserId, conversationType, ref)
 			}
-			c.Infof("  Enqueued %d conversation archives.", len(conversations.AllConversations))
+			log.Infof(c, "  Enqueued %d conversation archives.", len(conversations.AllConversations))
 		} else {
-			c.Infof("  Not sent, no conversations found.")
+			log.Infof(c, "  Not sent, no conversations found.")
 		}
 		return nil
 	})
 
 var sendConversationArchiveFunc = delay.Func(
 	"sendConversationArchive",
-	func(c appengine.Context, slackUserId string, conversationType string, ref string) error {
-		c.Infof("Sending archive for %s conversation %s %s...",
+	func(c context.Context, slackUserId string, conversationType string, ref string) error {
+		log.Infof(c, "Sending archive for %s conversation %s %s...",
 			slackUserId, conversationType, ref)
 		account, err := getAccount(c, slackUserId)
 		if err != nil {
-			c.Errorf("  Error looking up account: %s", err.Error())
+			log.Errorf(c, "  Error looking up account: %s", err.Error())
 			return err
 		}
 		slackClient := account.NewSlackClient(c)
 		conversation, err := getConversationFromRef(conversationType, ref, slackClient)
 		if err != nil {
-			c.Errorf("  Error looking up conversation: %s", err.Error())
+			log.Errorf(c, "  Error looking up conversation: %s", err.Error())
 			if !appengine.IsDevAppServer() {
 				sendArchiveErrorMail(err, c, slackUserId)
 			}
@@ -345,21 +347,21 @@ var sendConversationArchiveFunc = delay.Func(
 		}
 		sent, err := sendConversationArchive(conversation, account, c)
 		if err != nil {
-			c.Errorf("  Error sending conversation archive: %s", err.Error())
+			log.Errorf(c, "  Error sending conversation archive: %s", err.Error())
 			if !appengine.IsDevAppServer() {
 				sendArchiveErrorMail(err, c, slackUserId)
 			}
 			return err
 		}
 		if sent {
-			c.Infof("  Sent!")
+			log.Infof(c, "  Sent!")
 		} else {
-			c.Infof("  Not sent, archive was empty.")
+			log.Infof(c, "  Not sent, archive was empty.")
 		}
 		return nil
 	})
 
-func sendArchive(account *Account, c appengine.Context) (int, error) {
+func sendArchive(account *Account, c context.Context) (int, error) {
 	slackClient := account.NewSlackClient(c)
 	conversations, err := getConversations(slackClient, account)
 	if err != nil {
@@ -378,7 +380,7 @@ func sendArchive(account *Account, c appengine.Context) (int, error) {
 	return sentCount, nil
 }
 
-func sendArchiveErrorMail(e error, c appengine.Context, slackUserId string) {
+func sendArchiveErrorMail(e error, c context.Context, slackUserId string) {
 	if strings.Contains(e.Error(), "Canceled") ||
 		strings.Contains(e.Error(), "invalid security ticket") {
 		// Ignore these errors, they are internal to App Engine.
@@ -398,7 +400,7 @@ func sendArchiveErrorMail(e error, c appengine.Context, slackUserId string) {
 	}
 	err := mail.Send(c, errorMessage)
 	if err != nil {
-		c.Errorf("Error %s sending error email.", err.Error())
+		log.Errorf(c, "Error %s sending error email.", err.Error())
 	}
 }
 
@@ -422,7 +424,7 @@ func sendConversationArchiveHandler(w http.ResponseWriter, r *http.Request, stat
 	return RedirectToRoute("conversation-archive", "type", conversationType, "ref", ref)
 }
 
-func sendConversationArchive(conversation Conversation, account *Account, c appengine.Context) (bool, error) {
+func sendConversationArchive(conversation Conversation, account *Account, c context.Context) (bool, error) {
 	slackClient := account.NewSlackClient(c)
 	emailAddress, err := account.GetDigestEmailAddress(slackClient)
 	if err != nil {
@@ -488,12 +490,12 @@ func archiveFileThumbnailHandler(w http.ResponseWriter, r *http.Request) *AppErr
 	if url == "" {
 		url = file.Thumb360
 	}
-	c.Infof("Proxying %s for %s", url, ref.SlackUserId)
-	appengineTransport := &urlfetch.Transport{Context: c}
-	appengineTransport.Deadline = time.Second * 60
+	log.Infof(c, "Proxying %s for %s", url, ref.SlackUserId)
+	ctx_with_timeout, _ := context.WithTimeout(c, time.Second*60)
+	appengineTransport := &urlfetch.Transport{Context: ctx_with_timeout}
 	cachingTransport := &CachingTransport{
 		Transport: appengineTransport,
-		Context:   c,
+		Context:   ctx_with_timeout,
 	}
 	client := http.Client{Transport: cachingTransport}
 	fileReq, err := http.NewRequest("GET", url, nil)

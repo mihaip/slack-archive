@@ -155,7 +155,7 @@ type Message struct {
 func (m *Message) TimestampTime() time.Time {
 	floatTimestamp, err := strconv.ParseFloat(m.Timestamp, 64)
 	if err != nil {
-		log.Println("Could not parse timestamp \"%s\".", m.Timestamp, err)
+		log.Printf("Could not parse timestamp \"%s\": %s.\n", m.Timestamp, err)
 		return time.Time{}
 	}
 	return time.Unix(int64(floatTimestamp), 0).In(m.account.TimezoneLocation)
