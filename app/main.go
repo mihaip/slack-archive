@@ -381,11 +381,13 @@ func sendArchive(account *Account, c context.Context) (int, error) {
 }
 
 func sendArchiveErrorMail(e error, c context.Context, slackUserId string) {
-	if strings.Contains(e.Error(), "Canceled") ||
+	if appengine.IsTimeoutError(e) ||
+		strings.Contains(e.Error(), "Canceled") ||
 		strings.Contains(e.Error(), "invalid security ticket") {
 		// Ignore these errors, they are internal to App Engine.
-		// "Canceled" may happen when a urlfetch is still going on after the
-		// request timeout fires, but for us it happens within a few seconds.
+		// Timeout error and "Canceled" may happen when a urlfetch is still
+		// going on after the request timeout fires, but for us it happens
+		// within a few seconds.
 		// "invalid security ticket" may happen when using an App Engine context
 		// after the HTTP request for it finishes, but we're not doing that.
 		// Since delayed tasks will be retried if they return an error (and
