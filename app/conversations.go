@@ -148,7 +148,7 @@ func (c *DirectMessageConversation) InitFromRef(ref string, slackClient *slack.C
 	}
 	user, err := slackClient.GetUserInfo(c.im.User)
 	if err != nil {
-		return err
+		return fmt.Errorf("Could not look up user %s for DM %s: %s", c.im.User, ref, err.Error())
 	}
 	c.user = user
 	return nil
