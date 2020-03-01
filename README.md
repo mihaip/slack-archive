@@ -18,5 +18,5 @@ The server can the be accessed at [http://localhost:8080/](http://localhost:8080
 ## Deploying to App Engine
 
 ```
-gcloud app deploy --project slack-archive app/app.yaml
+./deploy.sh
 ```

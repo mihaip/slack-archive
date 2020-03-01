@@ -33,7 +33,7 @@ var templates map[string]*Template
 var fileUrlRefEncryptionKey []byte
 var emojiByShortName map[string]*Emoji
 
-func init() {
+func main() {
 	styles = loadStyles()
 	templates = loadTemplates()
 	timezones = initTimezones()
@@ -60,6 +60,8 @@ func init() {
 	router.Handle("/account/delete", SignedInAppHandler(deleteAccountHandler)).Name("delete-account").Methods("POST")
 
 	http.Handle("/", router)
+
+	appengine.Main()
 }
 
 func indexHandler(w http.ResponseWriter, r *http.Request) *AppError {

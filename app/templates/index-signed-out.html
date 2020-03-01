@@ -2,6 +2,8 @@
 
 {{define "body"}}
 
+<p>Service for doing "off-site" archive of all your communications on Slack teams. Main use-case is for getting Slack messages into Gmail's history, so that you can search it alongside your email.</p>
+
 <form id="sign-in-form" method="POST" action="{{routeUrl "sign-in"}}">
   <input type="hidden" name="continue_url" value="{{.ContinueUrl}}">
   <input type="submit" class="action-button" value="Sign In">
