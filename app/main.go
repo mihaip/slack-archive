@@ -400,6 +400,7 @@ func sendArchive(account *Account, c context.Context) (int, error) {
 func sendArchiveErrorMail(e error, c context.Context, slackUserId string) {
 	if appengine.IsTimeoutError(e) ||
 		strings.Contains(e.Error(), "Canceled") ||
+		strings.Contains(e.Error(), "context canceled") ||
 		strings.Contains(e.Error(), "invalid security ticket") ||
 		strings.Contains(e.Error(), "Call error 11") {
 		// Ignore these errors, they are internal to App Engine.
