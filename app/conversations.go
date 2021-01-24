@@ -22,17 +22,21 @@ func conversationArchiveUrl(c Conversation) string {
 }
 
 type Conversation interface {
+	Id() string
 	Name() string
 	NameHtml() template.HTML
 	Purpose() string
 	ToRef() (conversationType string, ref string)
 	InitFromRef(ref string, slackClient *slack.Client) error
 	ArchiveUrl() string
-	History(params slack.HistoryParameters, slackClient *slack.Client) (*slack.History, error)
 }
 
 type ChannelConversation struct {
 	channel *slack.Channel
+}
+
+func (c *ChannelConversation) Id() string {
+	return c.channel.ID
 }
 
 func (c *ChannelConversation) Name() string {
@@ -55,7 +59,7 @@ func (c *ChannelConversation) ToRef() (conversationType string, ref string) {
 }
 
 func (c *ChannelConversation) InitFromRef(ref string, slackClient *slack.Client) error {
-	channel, err := slackClient.GetChannelInfo(ref)
+	channel, err := slackClient.GetConversationInfo(ref, false)
 	c.channel = channel
 	return err
 }
@@ -64,36 +68,36 @@ func (c *ChannelConversation) ArchiveUrl() string {
 	return conversationArchiveUrl(c)
 }
 
-func (c *ChannelConversation) History(params slack.HistoryParameters, slackClient *slack.Client) (*slack.History, error) {
-	return slackClient.GetChannelHistory(c.channel.ID, params)
+type PrivateChannelConversation struct {
+	channel *slack.Channel
 }
 
-type PrivateChannelConversation struct {
-	group *slack.Group
+func (c *PrivateChannelConversation) Id() string {
+	return c.channel.ID
 }
 
 func (c *PrivateChannelConversation) Name() string {
-	return fmt.Sprintf("🔒%s", c.group.Name)
+	return fmt.Sprintf("🔒%s", c.channel.Name)
 }
 
 func (c *PrivateChannelConversation) NameHtml() template.HTML {
 	return template.HTML(fmt.Sprintf(
 		"<span style='%s' class='lock'>🔒</span>%s",
 		Style("conversation.lock"),
-		html.EscapeString(c.group.Name)))
+		html.EscapeString(c.channel.Name)))
 }
 
 func (c *PrivateChannelConversation) Purpose() string {
-	return c.group.Purpose.Value
+	return c.channel.Purpose.Value
 }
 
 func (c *PrivateChannelConversation) ToRef() (conversationType string, ref string) {
-	return "private-channel", c.group.ID
+	return "private-channel", c.channel.ID
 }
 
 func (c *PrivateChannelConversation) InitFromRef(ref string, slackClient *slack.Client) error {
-	group, err := slackClient.GetGroupInfo(ref)
-	c.group = group
+	channel, err := slackClient.GetConversationInfo(ref, false)
+	c.channel = channel
 	return err
 }
 
@@ -101,13 +105,13 @@ func (c *PrivateChannelConversation) ArchiveUrl() string {
 	return conversationArchiveUrl(c)
 }
 
-func (c *PrivateChannelConversation) History(params slack.HistoryParameters, slackClient *slack.Client) (*slack.History, error) {
-	return slackClient.GetGroupHistory(c.group.ID, params)
+type DirectMessageConversation struct {
+	im   *slack.Channel
+	user *slack.User
 }
 
-type DirectMessageConversation struct {
-	im   *slack.IM
-	user *slack.User
+func (c *DirectMessageConversation) Id() string {
+	return c.im.ID
 }
 
 func (c *DirectMessageConversation) Name() string {
@@ -132,21 +136,12 @@ func (c *DirectMessageConversation) ToRef() (conversationType string, ref string
 }
 
 func (c *DirectMessageConversation) InitFromRef(ref string, slackClient *slack.Client) error {
-	ims, err := slackClient.GetIMChannels()
+	im, err := slackClient.GetConversationInfo(ref, false)
 	if err != nil {
 		return err
 	}
-	c.im = nil
-	for i := range ims {
-		if ims[i].ID == ref {
-			c.im = &ims[i]
-			break
-		}
-	}
-	if c.im == nil {
-		return errors.New(fmt.Sprintf("Could not find direct message with ID %s", ref))
-	}
-	user, err := slackClient.GetUserInfo(c.im.User)
+	c.im = im
+	user, err := slackClient.GetUserInfo(im.User)
 	if err != nil {
 		return fmt.Errorf("Could not look up user %s for DM %s: %s", c.im.User, ref, err.Error())
 	}
@@ -158,13 +153,13 @@ func (c *DirectMessageConversation) ArchiveUrl() string {
 	return conversationArchiveUrl(c)
 }
 
-func (c *DirectMessageConversation) History(params slack.HistoryParameters, slackClient *slack.Client) (*slack.History, error) {
-	return slackClient.GetIMHistory(c.im.ID, params)
+type MultiPartyDirectMessageConversation struct {
+	mpim  *slack.Channel
+	users []*slack.User
 }
 
-type MultiPartyDirectMessageConversation struct {
-	group *slack.Group
-	users []*slack.User
+func (c *MultiPartyDirectMessageConversation) Id() string {
+	return c.mpim.ID
 }
 
 func (c *MultiPartyDirectMessageConversation) Name() string {
@@ -188,15 +183,15 @@ func (c *MultiPartyDirectMessageConversation) Purpose() string {
 }
 
 func (c *MultiPartyDirectMessageConversation) ToRef() (conversationType string, ref string) {
-	return "mpdm-group", c.group.ID
+	return "mpdm-group", c.mpim.ID
 }
 
 func (c *MultiPartyDirectMessageConversation) InitFromRef(ref string, slackClient *slack.Client) error {
-	group, err := slackClient.GetGroupInfo(ref)
+	mpim, err := slackClient.GetConversationInfo(ref, false)
 	if err != nil {
 		return err
 	}
-	c.group = group
+	c.mpim = mpim
 	return c.loadUsers(slackClient)
 }
 
@@ -205,12 +200,23 @@ func (c *MultiPartyDirectMessageConversation) loadUsers(slackClient *slack.Clien
 	if err != nil {
 		return err
 	}
+	return c.loadUsersWithLookup(slackClient, userLookup)
+}
+
+func (c *MultiPartyDirectMessageConversation) loadUsersWithLookup(slackClient *slack.Client, userLookup *UserLookup) error {
 	authTest, err := slackClient.AuthTest()
 	if err != nil {
 		return err
 	}
-	users := make([]*slack.User, 0, len(c.group.Members))
-	for _, userId := range c.group.Members {
+	members, _, err := slackClient.GetUsersInConversation(&slack.GetUsersInConversationParameters{
+		ChannelID: c.mpim.ID,
+		Limit:     100,
+	})
+	if err != nil {
+		return err
+	}
+	users := make([]*slack.User, 0, len(members))
+	for _, userId := range members {
 		if userId == authTest.UserID {
 			continue
 		}
@@ -226,10 +232,6 @@ func (c *MultiPartyDirectMessageConversation) loadUsers(slackClient *slack.Clien
 
 func (c *MultiPartyDirectMessageConversation) ArchiveUrl() string {
 	return conversationArchiveUrl(c)
-}
-
-func (c *MultiPartyDirectMessageConversation) History(params slack.HistoryParameters, slackClient *slack.Client) (*slack.History, error) {
-	return slackClient.GetGroupHistory(c.group.ID, params)
 }
 
 type Conversations struct {
@@ -264,69 +266,54 @@ func getConversations(slackClient *slack.Client, account *Account) (*Conversatio
 	}
 	conversations := &Conversations{}
 
-	channels, err := slackClient.GetChannels(false)
+	params := slack.GetConversationsForUserParameters{
+		Limit: 1000,
+		Types: []string{"public_channel", "private_channel", "mpim", "im"},
+	}
+	slackConversations, _, err := slackClient.GetConversationsForUser(&params)
 	if err != nil {
 		return nil, err
 	}
-	conversations.Channels = make([]Conversation, 0, len(channels))
-	for i := range channels {
-		channel := &channels[i]
-		if channel.IsMember && !channel.IsArchived {
-			conversations.Channels = append(conversations.Channels, &ChannelConversation{channel})
-		}
-	}
-
-	groups, err := slackClient.GetGroups(false)
-	if err != nil {
-		return nil, err
-	}
-	conversations.PrivateChannels = make([]Conversation, 0, len(groups))
+	conversations.Channels = make([]Conversation, 0)
+	conversations.PrivateChannels = make([]Conversation, 0)
 	conversations.MultiPartyDirectMessages = make([]Conversation, 0)
-	for i := range groups {
-		group := &groups[i]
-		if !group.IsArchived {
-			if strings.HasPrefix(group.Name, "mpdm-") {
-				// Multi-party direct messages are represented as groups for
-				// backwards compatility. Since the Slack Go library doesn't
-				// have explicit multi-party direct message support, we use
-				// them to synthesize a MultiPartyDirectMessage.
-				// (https://api.slack.com/types/group)
-				mpdm := &MultiPartyDirectMessageConversation{group: group}
-				err := mpdm.loadUsers(slackClient)
-				if err != nil {
-					return nil, err
-				}
-				conversations.MultiPartyDirectMessages = append(conversations.MultiPartyDirectMessages, mpdm)
-			} else {
-				conversations.PrivateChannels = append(conversations.PrivateChannels, &PrivateChannelConversation{group})
+	conversations.DirectMessages = make([]Conversation, 0)
+	conversations.AllConversations = make([]Conversation, 0, len(slackConversations))
+	for i := range slackConversations {
+		slackConversation := &slackConversations[i]
+		var conversation Conversation = nil
+		if slackConversation.IsChannel {
+			if !slackConversation.IsArchived {
+				conversation = &ChannelConversation{channel: slackConversation}
+				conversations.Channels = append(conversations.Channels, conversation)
 			}
-		}
-	}
-
-	ims, err := slackClient.GetIMChannels()
-	if err != nil {
-		return nil, err
-	}
-	conversations.DirectMessages = make([]Conversation, 0, len(ims))
-	if len(ims) > 0 {
-		for i := range ims {
-			im := &ims[i]
-			if im.IsUserDeleted {
-				continue
+		} else if slackConversation.IsGroup && !slackConversation.IsMpIM {
+			if !slackConversation.IsArchived {
+				conversation = &PrivateChannelConversation{channel: slackConversation}
+				conversations.PrivateChannels = append(conversations.PrivateChannels, conversation)
 			}
-			user, err := userLookup.GetUser(im.User)
+		} else if slackConversation.IsMpIM {
+			mpdm := &MultiPartyDirectMessageConversation{mpim: slackConversation}
+			err := mpdm.loadUsersWithLookup(slackClient, userLookup)
 			if err != nil {
 				return nil, err
 			}
-			conversations.DirectMessages = append(conversations.DirectMessages, &DirectMessageConversation{im, user})
+			conversation = mpdm
+			conversations.MultiPartyDirectMessages = append(conversations.MultiPartyDirectMessages, mpdm)
+		} else if slackConversation.IsIM {
+			user, err := userLookup.GetUser(slackConversation.User)
+			if err != nil {
+				return nil, err
+			}
+			conversation = &DirectMessageConversation{im: slackConversation, user: user}
+			conversations.DirectMessages = append(conversations.DirectMessages, conversation)
+		} else {
+			return nil, fmt.Errorf("Unknown Slack conversation: %s", slackConversation.ID)
+		}
+		if conversation != nil {
+			conversations.AllConversations = append(conversations.AllConversations, conversation)
 		}
 	}
-
-	conversations.AllConversations = make([]Conversation, 0, len(conversations.Channels))
-	conversations.AllConversations = append(conversations.AllConversations, conversations.Channels...)
-	conversations.AllConversations = append(conversations.AllConversations, conversations.PrivateChannels...)
-	conversations.AllConversations = append(conversations.AllConversations, conversations.DirectMessages...)
-	conversations.AllConversations = append(conversations.AllConversations, conversations.MultiPartyDirectMessages...)
 
 	return conversations, nil
 }
@@ -365,14 +352,15 @@ func newConversationArchive(conversation Conversation, slackClient *slack.Client
 		archiveEndTime = now
 	}
 
-	params := slack.HistoryParameters{
+	params := slack.GetConversationHistoryParameters{
+		ChannelID: conversation.Id(),
 		Latest:    fmt.Sprintf("%d", archiveEndTime.Unix()),
 		Oldest:    fmt.Sprintf("%d", archiveStartTime.Unix()),
-		Count:     1000,
+		Limit:     1000,
 		Inclusive: false,
 	}
 	for {
-		history, err := conversation.History(params, slackClient)
+		history, err := slackClient.GetConversationHistory(&params)
 		if err != nil {
 			return nil, err
 		}

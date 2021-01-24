@@ -29,6 +29,7 @@ func (t *CachingTransport) RoundTrip(req *http.Request) (resp *http.Response, er
 	// The Go App Engine runtime has a 250 byte limit for memcache keys, so we
 	// need to hash the URL to make sure we stay under it.
 	cacheHash := md5.New()
+	io.WriteString(cacheHash, "cache_version_1")
 	io.WriteString(cacheHash, req.URL.String())
 
 	if req.Body != nil {
