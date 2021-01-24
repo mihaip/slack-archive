@@ -20,7 +20,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/gorilla/sessions"
-	"github.com/nlopes/slack"
+	"github.com/slack-go/slack"
 )
 
 var router *mux.Router
@@ -169,11 +169,14 @@ func signOutHandler(w http.ResponseWriter, r *http.Request) *AppError {
 }
 
 func slackOAuthCallbackHandler(w http.ResponseWriter, r *http.Request) *AppError {
+	c := appengine.NewContext(r)
+	httpClient := urlfetch.Client(c)
+
 	code := r.FormValue("code")
 	redirectUrl := AbsolutePathUrl(r.URL.Path)
 	token, _, err := slack.GetOAuthToken(
-		slackOAuthConfig.ClientId, slackOAuthConfig.ClientSecret, code,
-		redirectUrl, false)
+		httpClient, slackOAuthConfig.ClientId, slackOAuthConfig.ClientSecret, code,
+		redirectUrl)
 	if err != nil {
 		return InternalError(err, "Could not exchange OAuth code")
 	}
@@ -184,7 +187,6 @@ func slackOAuthCallbackHandler(w http.ResponseWriter, r *http.Request) *AppError
 		return SlackFetchError(err, "user")
 	}
 
-	c := appengine.NewContext(r)
 	allowedTeams := []string{
 		"Partyslack",
 		"Quip",

@@ -20,7 +20,7 @@ import (
 	"google.golang.org/appengine/urlfetch"
 
 	"github.com/gorilla/sessions"
-	"github.com/nlopes/slack"
+	"github.com/slack-go/slack"
 )
 
 const (

@@ -9,7 +9,7 @@ import (
 	"google.golang.org/appengine/datastore"
 	"google.golang.org/appengine/urlfetch"
 
-	"github.com/nlopes/slack"
+	"github.com/slack-go/slack"
 )
 
 type Account struct {

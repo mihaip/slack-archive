@@ -8,7 +8,7 @@ Service for doing "off-site" archive of all your communications on Slack teams. 
   2. Install the depencies:
      * `go get github.com/gorilla/mux`
      * `go get github.com/gorilla/sessions`
-     * `go get github.com/nlopes/slack`
+     * `go get github.com/slack-go/slack`
   3. Create `slack-oauth.json` (you'll need to [register a new app](https://api.slack.com/applications/new) with Slack), `session.json` (with randomly-generated keys) and `files.json` files in the `config` directory, based on the sample files that are already there.
   4. Make sure that `PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION` is set to `python`.
   5. Run: `dev_appserver.py --enable_sendmail=yes app`

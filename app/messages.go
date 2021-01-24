@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/nlopes/slack"
+	"github.com/slack-go/slack"
 )
 
 const (
@@ -188,10 +188,7 @@ func (m *Message) MessageFile() *MessageFile {
 	if len(m.Files) > 0 {
 		return &MessageFile{&m.Files[0], m.slackClient, m.account}
 	}
-	if m.File == nil {
-		return nil
-	}
-	return &MessageFile{m.File, m.slackClient, m.account}
+	return nil
 }
 
 func (m *Message) MessageReactions() []*MessageReaction {
