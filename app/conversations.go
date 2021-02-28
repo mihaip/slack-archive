@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"html"
 	"html/template"
+	"log"
 	"strings"
 	"time"
 
@@ -379,6 +380,42 @@ func newConversationArchive(conversation Conversation, slackClient *slack.Client
 	if err != nil {
 		return nil, err
 	}
+	for i := range messageGroups {
+		messageGroup := messageGroups[i]
+		for j := range messageGroup.Messages {
+			message := messageGroup.Messages[j]
+			if message.HasReplies() {
+				replyParams := slack.GetConversationRepliesParameters{
+					ChannelID: conversation.Id(),
+					Timestamp: message.ThreadTimestamp,
+					Latest:    fmt.Sprintf("%d", archiveEndTime.Unix()),
+					Oldest:    fmt.Sprintf("%d", archiveStartTime.Unix()),
+					Limit:     1000,
+					Inclusive: false,
+				}
+				clientReplyMessages, _, _, err := slackClient.GetConversationReplies(&replyParams)
+				if err != nil {
+					log.Printf("Could not get replies for %s, continuing: %s", message.ClientMsgID, err)
+					continue
+				}
+				replyMessages := make([]*slack.Message, 0, len(clientReplyMessages))
+				for i := range clientReplyMessages {
+					m := &clientReplyMessages[len(clientReplyMessages)-1-i]
+					if m.Timestamp == m.ThreadTimestamp {
+						continue
+					}
+					replyMessages = append([]*slack.Message{m}, replyMessages...)
+				}
+				replyGroups, err := groupMessages(replyMessages, slackClient, account)
+				if err != nil {
+					log.Printf("Could not group replies for %s, continuing: %s", message.ClientMsgID, err)
+					continue
+				}
+				message.ReplyMessageGroups = replyGroups
+			}
+		}
+	}
+
 	return &ConversationArchive{
 		Conversation:  conversation,
 		MessageGroups: messageGroups,

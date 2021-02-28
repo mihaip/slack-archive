@@ -148,6 +148,7 @@ func textToHtml(text string, truncate bool, slackClient *slack.Client) template.
 
 type Message struct {
 	*slack.Message
+	ReplyMessageGroups []*MessageGroup
 	slackClient *slack.Client
 	account     *Account
 }
@@ -198,6 +199,13 @@ func (m *Message) MessageReactions() []*MessageReaction {
 			reactions, &MessageReaction{&m.Reactions[i], m.slackClient})
 	}
 	return reactions
+}
+
+func (m *Message) HasReplies() bool {
+	// ReplyCount may be deprecated, don't rely on it.
+	// https://api.slack.com/messaging/retrieving#finding_threads instructs to
+	// rely on thread_ts and ts comparisons
+	return (m.ThreadTimestamp != "" && m.Timestamp == m.ThreadTimestamp)  || m.ReplyCount > 0
 }
 
 type MessageAttachment struct {
@@ -390,7 +398,7 @@ func groupMessages(messages []*slack.Message, slackClient *slack.Client, account
 		return nil, err
 	}
 	for i := range messages {
-		message := &Message{messages[i], slackClient, account}
+		message := &Message{messages[i], []*MessageGroup{}, slackClient, account}
 		if message.Hidden {
 			continue
 		}

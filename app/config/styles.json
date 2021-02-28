@@ -156,6 +156,17 @@
         "color": "#999",
         "font-size": "9pt"
       }
+    },
+    "replies": {
+      "header": {
+        "color": "#999",
+        "font-weight": "bold"
+      },
+      "body": {
+        "border-left": "solid 4px #ddd",
+        "padding-left": "1ex",
+        "margin": "0"
+      }
     }
   },
   "email-footer": {

@@ -19,6 +19,19 @@
     </div>
   {{end}}
 
+  {{if .HasReplies}}
+    <div style="{{style "message.replies"}}">
+      <div style="{{style "message.replies.header"}}">
+        {{.ReplyCount}} {{if ne .ReplyCount 1}}Replies{{else}}Reply{{end}}
+      </div>
+      <div style="{{style "message.replies.body"}}">
+        {{range .ReplyMessageGroups}}
+          {{template "message-group" .}}
+        {{end}}
+      </div>
+    </div>
+  {{end}}
+
 </div>
 
 {{end}}
