@@ -51,11 +51,12 @@ func (lookup *UserLookup) GetUser(userId string) (*slack.User, error) {
 				return botUser, nil
 			}
 		}
-		user, err := lookup.slackClient.GetUserInfo(userId)
+		lookupUser, err := lookup.slackClient.GetUserInfo(userId)
 		if err != nil {
 			return nil, err
 		}
-		lookup.usersById[userId] = user
+		lookup.usersById[userId] = lookupUser
+		user = lookupUser
 	}
 	return user, nil
 }

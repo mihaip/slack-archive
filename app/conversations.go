@@ -119,6 +119,9 @@ func (c *DirectMessageConversation) Name() string {
 }
 
 func (c *DirectMessageConversation) NameHtml() template.HTML {
+	if c.user == nil {
+		return template.HTML(fmt.Sprintf("User %s", html.EscapeString(c.im.User)))
+	}
 	imageHtml := fmt.Sprintf(
 		"<img src='%s' width='36' height='36' class='user-image' style='%s'>",
 		c.user.Profile.Image72,
