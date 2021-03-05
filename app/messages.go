@@ -139,8 +139,8 @@ func textToHtml(text string, truncate bool, slackClient *slack.Client) template.
 type Message struct {
 	*slack.Message
 	ReplyMessageGroups []*MessageGroup
-	slackClient *slack.Client
-	account     *Account
+	slackClient        *slack.Client
+	account            *Account
 }
 
 func (m *Message) TimestampTime() time.Time {
@@ -195,7 +195,7 @@ func (m *Message) HasReplies() bool {
 	// ReplyCount may be deprecated, don't rely on it.
 	// https://api.slack.com/messaging/retrieving#finding_threads instructs to
 	// rely on thread_ts and ts comparisons
-	return (m.ThreadTimestamp != "" && m.Timestamp == m.ThreadTimestamp)  || m.ReplyCount > 0
+	return (m.ThreadTimestamp != "" && m.Timestamp == m.ThreadTimestamp) || m.ReplyCount > 0
 }
 
 type MessageAttachment struct {
