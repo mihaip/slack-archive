@@ -84,12 +84,7 @@ func textToHtml(text string, truncate bool, slackClient *slack.Client) template.
 					user, err := userLookup.GetUser(userId)
 					if err == nil {
 						anchorText = fmt.Sprintf("@%s", user.Name)
-						authTest, err := slackClient.AuthTest()
-						if err == nil {
-							control = fmt.Sprintf("%s/team/%s", authTest.URL, user.Name)
-						} else {
-							log.Printf("Could get team URL: %s", err)
-						}
+						control = fmt.Sprintf("https://slack.com/app_redirect?team=%s&channel=%s", user.TeamID, userId)
 					} else {
 						log.Printf("Could not render user mention: %s", err)
 					}
@@ -101,12 +96,7 @@ func textToHtml(text string, truncate bool, slackClient *slack.Client) template.
 				channel, err := slackClient.GetConversationInfo(channelId, false)
 				if err == nil {
 					anchorText = fmt.Sprintf("#%s", channel.Name)
-					authTest, err := slackClient.AuthTest()
-					if err == nil {
-						control = fmt.Sprintf("%s/team/%s", authTest.URL, channel.Name)
-					} else {
-						log.Printf("Could get team URL: %s", err)
-					}
+					control = fmt.Sprintf("https://slack.com/app_redirect?channel=%s", channelId)
 				} else {
 					log.Printf("Could not render channel mention: %s", err)
 				}
