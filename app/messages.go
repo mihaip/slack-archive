@@ -98,7 +98,7 @@ func textToHtml(text string, truncate bool, slackClient *slack.Client) template.
 				}
 			} else if strings.HasPrefix(control, "#C") {
 				channelId := strings.TrimPrefix(control, "#")
-				channel, err := slackClient.GetChannelInfo(channelId)
+				channel, err := slackClient.GetConversationInfo(channelId, false)
 				if err == nil {
 					anchorText = fmt.Sprintf("#%s", channel.Name)
 					authTest, err := slackClient.AuthTest()
