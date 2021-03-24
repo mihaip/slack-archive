@@ -140,6 +140,7 @@ type Message struct {
 	*slack.Message
 	ReplyMessageGroups []*MessageGroup
 	slackClient        *slack.Client
+	userLookup         *UserLookup
 	account            *Account
 }
 
@@ -186,7 +187,7 @@ func (m *Message) MessageReactions() []*MessageReaction {
 	reactions := make([]*MessageReaction, 0, len(m.Reactions))
 	for i := range m.Reactions {
 		reactions = append(
-			reactions, &MessageReaction{&m.Reactions[i], m.slackClient})
+			reactions, &MessageReaction{&m.Reactions[i], m.slackClient, m.userLookup})
 	}
 	return reactions
 }
@@ -309,6 +310,7 @@ func (f *MessageFile) PreviewHtml() template.HTML {
 type MessageReaction struct {
 	*slack.ItemReaction
 	slackClient *slack.Client
+	userLookup  *UserLookup
 }
 
 func (r *MessageReaction) Emoji() template.HTML {
@@ -319,13 +321,9 @@ func (r *MessageReaction) Emoji() template.HTML {
 }
 
 func (r *MessageReaction) Summary() (string, error) {
-	userLookup, err := newUserLookup(r.slackClient)
-	if err != nil {
-		return "", err
-	}
 	names := make([]string, len(r.Users))
 	for i := range r.Users {
-		if user, err := userLookup.GetUser(r.Users[i]); err == nil {
+		if user, err := r.userLookup.GetUser(r.Users[i]); err == nil {
 			names[i] = user.Name
 		} else {
 			names[i] = r.Users[i]
@@ -388,7 +386,7 @@ func groupMessages(messages []*slack.Message, slackClient *slack.Client, account
 		return nil, err
 	}
 	for i := range messages {
-		message := &Message{messages[i], []*MessageGroup{}, slackClient, account}
+		message := &Message{messages[i], []*MessageGroup{}, slackClient, userLookup, account}
 		if message.Hidden {
 			continue
 		}
