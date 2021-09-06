@@ -6,4 +6,4 @@ DEST="$GOPATH/src/slack-archive"
 rm -rf $DEST
 cp -r app $DEST
 cd $DEST
-gcloud app deploy --project slack-archive app.yaml
+gcloud app deploy --project slack-archive app.yaml queue.yaml
