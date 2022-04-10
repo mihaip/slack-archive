@@ -194,6 +194,7 @@ func slackOAuthCallbackHandler(w http.ResponseWriter, r *http.Request) *AppError
 		"Partiest Chattiest",
 		"DanceDeets", "Spring '17 Babies",
 		"Medallandia",
+		"Parparitaville",
 	}
 	isAllowedTeam := false
 	for _, allowedTeam := range allowedTeams {
