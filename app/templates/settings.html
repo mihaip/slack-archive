@@ -21,6 +21,21 @@
 </div>
 
 <div class="setting">
+  Send:
+  <label>
+    <input type="radio" name="direct_messages_only" value="false" {{if not .Account.DirectMessagesOnly}}checked{{end}}>
+    All conversations
+  </label>
+  <label>
+    <input type="radio" name="direct_messages_only" value="true" {{if .Account.DirectMessagesOnly}}checked{{end}}>
+    Direct messages only
+  </label>
+  <div class="explanation">
+    Whether to send all conversations just those from direct messages (both 1:1 and multi-person).
+  </div>
+</div>
+
+<div class="setting">
   <label>
     Timezone:
     <select name="timezone_name">

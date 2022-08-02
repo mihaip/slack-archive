@@ -270,9 +270,15 @@ func getConversations(slackClient *slack.Client, account *Account) (*Conversatio
 	}
 	conversations := &Conversations{}
 
+	var conversationTypes []string
+	if account.DirectMessagesOnly {
+		conversationTypes = []string{"mpim", "im"}
+	} else {
+		conversationTypes = []string{"public_channel", "private_channel", "mpim", "im"}
+	}
 	params := slack.GetConversationsForUserParameters{
 		Limit: 1000,
-		Types: []string{"public_channel", "private_channel", "mpim", "im"},
+		Types: conversationTypes,
 	}
 	slackConversations, _, err := slackClient.GetConversationsForUser(&params)
 	if err != nil {

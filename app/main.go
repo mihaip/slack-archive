@@ -189,10 +189,11 @@ func slackOAuthCallbackHandler(w http.ResponseWriter, r *http.Request) *AppError
 
 	allowedTeams := []string{
 		"Partyslack",
-		"Quip",
+		"Tailscale",
 		"More Partier More Chattier",
 		"Partiest Chattiest",
-		"DanceDeets", "Spring '17 Babies",
+		"DanceDeets",
+		"Spring '17 Babies",
 		"Medallandia",
 		"Parparitaville",
 	}
@@ -585,6 +586,7 @@ func saveSettingsHandler(w http.ResponseWriter, r *http.Request, state *AppSigne
 	account.TimezoneName = timezoneName
 
 	account.DigestEmailAddress = r.FormValue("email_address")
+	account.DirectMessagesOnly = r.FormValue("direct_messages_only") == "true"
 
 	err = account.Put(c)
 	if err != nil {

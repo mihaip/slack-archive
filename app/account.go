@@ -20,6 +20,7 @@ type Account struct {
 	TimezoneName       string         `datastore:",noindex"`
 	TimezoneLocation   *time.Location `datastore:"-,"`
 	DigestEmailAddress string         `datastore:",noindex"`
+	DirectMessagesOnly bool           `datastore:",noindex"`
 }
 
 func getAccount(c context.Context, slackUserId string) (*Account, error) {
