@@ -507,6 +507,9 @@ func archiveFileThumbnailHandler(w http.ResponseWriter, r *http.Request) *AppErr
 	slackClient := account.NewSlackClient(c)
 	file, _, _, err := slackClient.GetFileInfo(ref.FileId, 0, 0)
 	if err != nil {
+		if slackErr, ok := err.(slack.SlackErrorResponse); ok && slackErr.Err == "hidden_by_limit" {
+			return BadRequest(err, "tombstoned file")
+		}
 		return SlackFetchError(err, "file")
 	}
 
