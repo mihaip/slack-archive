@@ -520,11 +520,12 @@ func archiveFileThumbnailHandler(w http.ResponseWriter, r *http.Request) *AppErr
 		url = file.Thumb360
 	}
 	log.Infof(c, "Proxying %s for %s", url, ref.SlackUserId)
-	ctx_with_timeout, _ := context.WithTimeout(c, time.Second*60)
-	appengineTransport := &urlfetch.Transport{Context: ctx_with_timeout}
+	c, cancel := context.WithTimeout(c, time.Second*60)
+	defer cancel()
+	appengineTransport := &urlfetch.Transport{Context: c}
 	cachingTransport := &CachingTransport{
 		Transport: appengineTransport,
-		Context:   ctx_with_timeout,
+		Context:   c,
 	}
 	client := http.Client{Transport: cachingTransport}
 	fileReq, err := http.NewRequest("GET", url, nil)
