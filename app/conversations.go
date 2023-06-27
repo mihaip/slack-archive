@@ -292,12 +292,7 @@ func getConversations(slackClient *slack.Client, account *Account) (*Conversatio
 	for i := range slackConversations {
 		slackConversation := &slackConversations[i]
 		var conversation Conversation = nil
-		if slackConversation.IsChannel {
-			if !slackConversation.IsArchived {
-				conversation = &ChannelConversation{channel: slackConversation}
-				conversations.Channels = append(conversations.Channels, conversation)
-			}
-		} else if slackConversation.IsGroup && !slackConversation.IsMpIM {
+		if slackConversation.IsGroup && !slackConversation.IsMpIM {
 			if !slackConversation.IsArchived {
 				conversation = &PrivateChannelConversation{channel: slackConversation}
 				conversations.PrivateChannels = append(conversations.PrivateChannels, conversation)
@@ -317,6 +312,11 @@ func getConversations(slackClient *slack.Client, account *Account) (*Conversatio
 			}
 			conversation = &DirectMessageConversation{im: slackConversation, user: user}
 			conversations.DirectMessages = append(conversations.DirectMessages, conversation)
+		} else if slackConversation.IsChannel {
+			if !slackConversation.IsArchived {
+				conversation = &ChannelConversation{channel: slackConversation}
+				conversations.Channels = append(conversations.Channels, conversation)
+			}
 		} else {
 			return nil, fmt.Errorf("Unknown Slack conversation: %s", slackConversation.ID)
 		}
