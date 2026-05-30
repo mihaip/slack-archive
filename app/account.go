@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"time"
 
-	"google.golang.org/appengine/datastore"
-	"google.golang.org/appengine/urlfetch"
+	"google.golang.org/appengine/v2/datastore"
+	"google.golang.org/appengine/v2/urlfetch"
 
 	"github.com/slack-go/slack"
 )

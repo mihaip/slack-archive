@@ -13,9 +13,9 @@ import (
 	"net/url"
 	"strings"
 
-	appenginelog "google.golang.org/appengine/log"
-	appenginemail "google.golang.org/appengine/mail"
-	"google.golang.org/appengine/urlfetch"
+	appenginelog "google.golang.org/appengine/v2/log"
+	appenginemail "google.golang.org/appengine/v2/mail"
+	"google.golang.org/appengine/v2/urlfetch"
 )
 
 const (

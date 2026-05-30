@@ -4,22 +4,42 @@ Service for doing "off-site" archive of all your communications on Slack teams. 
 
 ## Running Locally
 
-  1. [Install the Go App Engine SDK](https://developers.google.com/appengine/downloads#Google_App_Engine_SDK_for_Go).
-  2. Create configuration files in the `config` directory, based on the sample files that are already there:
+  1. Install Go 1.25 and a current [Google Cloud CLI](https://cloud.google.com/sdk/docs/install).
+  2. Install the App Engine local development server component:
+     ```sh
+     gcloud components install app-engine-python
+     ```
+  3. Authenticate if you need local access to Google Cloud services:
+     ```sh
+     gcloud auth login
+     gcloud auth application-default login
+     ```
+  4. Create configuration files in the `config` directory, based on the sample files that are already there:
       - Create `slack-oauth.json` (you'll need to [register a new app](https://api.slack.com/applications/new) with Slack)
       - `session.json` (with randomly-generated keys)
       - `files.json` (another randomly-generated key)
       - `email.json` (see below for Cloudflare Email Service details)
-  3. Make sure that `PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION` is set to `python`.
-  4. Run: `dev_appserver.py app`
+  5. Run the local App Engine development server:
+     ```sh
+     ./dev.sh
+     ```
 
 The server can the be accessed at [http://localhost:8080/](http://localhost:8080/).
+
+The local development server simulates App Engine bundled services such as
+Datastore, Memcache, and Task Queues. App Engine Mail is a no-op locally unless
+you pass SMTP options or `--enable_sendmail=yes` to `dev_appserver.py`. The
+Cloudflare email provider can send real email when configured with production
+credentials.
 
 ## Deploying to App Engine
 
 ```
 ./deploy.sh
 ```
+
+`deploy.sh` deploys `app.yaml` and `queue.yaml`. Deploy `cron.yaml` separately
+only when cron configuration changes.
 
 ## Cloudflare Email Sending
 

@@ -13,8 +13,8 @@ import (
 	"strings"
 	"time"
 
-	"google.golang.org/appengine/log"
-	"google.golang.org/appengine/memcache"
+	"google.golang.org/appengine/v2/log"
+	"google.golang.org/appengine/v2/memcache"
 )
 
 // Simple http.RoundTripper implementation which wraps an existing transport and
