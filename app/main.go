@@ -273,16 +273,23 @@ func conversationArchiveHandler(w http.ResponseWriter, r *http.Request, state *A
 		return SlackFetchError(err, "conversation")
 	}
 
-	archive, err := newConversationArchive(conversation, state.SlackClient, state.Account, r.FormValue("dev") == "1")
+	archiveDate := r.FormValue("date")
+	if _, err := archiveWindow(state.Account, r.FormValue("dev") == "1", archiveDate); err != nil {
+		return BadRequest(err, "invalid archive date")
+	}
+	archive, err := newConversationArchive(conversation, state.SlackClient, state.Account, r.FormValue("dev") == "1", archiveDate)
 	if err != nil {
 		return SlackFetchError(err, "archive")
 	}
 
 	var data = map[string]interface{}{
-		"Conversation":        conversation,
-		"ConversationType":    conversationType,
-		"ConversationRef":     ref,
-		"ConversationArchive": archive,
+		"Conversation":                   conversation,
+		"ConversationType":               conversationType,
+		"ConversationRef":                ref,
+		"ConversationArchive":            archive,
+		"ArchiveDate":                    archive.StartTime.In(state.Account.TimezoneLocation).Format(ArchiveDateInputFormat),
+		"DefaultArchiveDate":             defaultArchiveDate(state.Account),
+		"ConversationSendIdempotencyKey": newIdempotencyKey("manual-conversation"),
 	}
 	return templates["conversation-archive-page"].Render(w, data, state)
 }
@@ -393,6 +400,7 @@ var sendConversationArchiveFunc = delay.Func(
 
 type SendArchiveOptions struct {
 	IdempotencyKey string
+	DateString     string
 }
 
 func sendArchive(account *Account, c context.Context, options SendArchiveOptions) (int, error) {
@@ -410,6 +418,7 @@ func sendArchive(account *Account, c context.Context, options SendArchiveOptions
 		}
 		sent, err := sendConversationArchive(conversation, account, c, SendArchiveOptions{
 			IdempotencyKey: idempotencyKey,
+			DateString:     options.DateString,
 		})
 		if err != nil {
 			return sentCount, err
@@ -452,12 +461,17 @@ func sendArchiveErrorMail(e error, c context.Context, slackUserId string) {
 func sendConversationArchiveHandler(w http.ResponseWriter, r *http.Request, state *AppSignedInState) *AppError {
 	conversationType := r.FormValue("conversation_type")
 	ref := r.FormValue("conversation_ref")
+	archiveDate := r.FormValue("date")
+	if _, err := archiveWindow(state.Account, false, archiveDate); err != nil {
+		return BadRequest(err, "invalid archive date")
+	}
 	conversation, err := getConversationFromRef(conversationType, ref, state.SlackClient)
 	if err != nil {
 		return SlackFetchError(err, "conversation")
 	}
 	c := appengine.NewContext(r)
 	sent, err := sendConversationArchive(conversation, state.Account, c, SendArchiveOptions{
+		DateString:     archiveDate,
 		IdempotencyKey: r.FormValue("idempotency_key"),
 	})
 	if err != nil {
@@ -468,7 +482,11 @@ func sendConversationArchiveHandler(w http.ResponseWriter, r *http.Request, stat
 	} else {
 		state.AddFlash("No archive was sent, it was empty or disabled.")
 	}
-	return RedirectToRoute("conversation-archive", "type", conversationType, "ref", ref)
+	queryParameters := map[string]string{}
+	if archiveDate != "" {
+		queryParameters["date"] = archiveDate
+	}
+	return RedirectToRouteWithQueryParameters("conversation-archive", queryParameters, "type", conversationType, "ref", ref)
 }
 
 func sendConversationArchive(conversation Conversation, account *Account, c context.Context, options SendArchiveOptions) (bool, error) {
@@ -480,7 +498,7 @@ func sendConversationArchive(conversation Conversation, account *Account, c cont
 	if emailAddress == "disabled" {
 		return false, nil
 	}
-	archive, err := newConversationArchive(conversation, slackClient, account, false)
+	archive, err := newConversationArchive(conversation, slackClient, account, false, options.DateString)
 	if err != nil {
 		return false, err
 	}
@@ -524,7 +542,7 @@ func stableArchiveIdempotencyKey(account *Account, conversationType string, ref 
 		conversationType,
 		ref,
 		emailAddress,
-		archiveStartTime.In(account.TimezoneLocation).Format("2006-01-02"),
+		archiveStartTime.In(account.TimezoneLocation).Format(ArchiveDateInputFormat),
 	}, ":")
 }
 
