@@ -1,3 +1,4 @@
 app/config/files.json
+app/config/email.json
 app/config/*oauth*.json
 app/config/session.json

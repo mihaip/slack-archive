@@ -3,6 +3,8 @@ package main
 import (
 	"bytes"
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"fmt"
 	"html/template"
 	"io"
@@ -15,7 +17,6 @@ import (
 	"google.golang.org/appengine/datastore"
 	"google.golang.org/appengine/delay"
 	"google.golang.org/appengine/log"
-	"google.golang.org/appengine/mail"
 	"google.golang.org/appengine/urlfetch"
 
 	"github.com/gorilla/mux"
@@ -32,6 +33,8 @@ var styles map[string]template.CSS
 var templates map[string]*Template
 var fileUrlRefEncryptionKey []byte
 var emojiByShortName map[string]*Emoji
+var emailConfig EmailConfig
+var emailSender EmailSender
 
 func main() {
 	styles = loadStyles()
@@ -41,6 +44,8 @@ func main() {
 	slackOAuthConfig = initSlackOAuthConfig()
 	fileUrlRefEncryptionKey = loadFileUrlRefEncryptionKey()
 	emojiByShortName = loadEmoji()
+	emailConfig = initEmailConfig()
+	emailSender = initEmailSender(emailConfig)
 
 	router = mux.NewRouter()
 	router.Handle("/", AppHandler(indexHandler)).Name("index")
@@ -110,10 +115,11 @@ func indexHandler(w http.ResponseWriter, r *http.Request) *AppError {
 		"ConversationCount": len(conversations.AllConversations),
 	}
 	var data = map[string]interface{}{
-		"User":            user,
-		"Team":            team,
-		"Conversations":   conversations,
-		"SettingsSummary": settingsSummary,
+		"User":                      user,
+		"Team":                      team,
+		"Conversations":             conversations,
+		"SettingsSummary":           settingsSummary,
+		"ArchiveSendIdempotencyKey": newIdempotencyKey("manual-archive"),
 	}
 	return templates["index"].Render(w, data, &AppSignedInState{
 		Account:        account,
@@ -283,7 +289,9 @@ func conversationArchiveHandler(w http.ResponseWriter, r *http.Request, state *A
 
 func sendArchiveHandler(w http.ResponseWriter, r *http.Request, state *AppSignedInState) *AppError {
 	c := appengine.NewContext(r)
-	sentCount, err := sendArchive(state.Account, c)
+	sentCount, err := sendArchive(state.Account, c, SendArchiveOptions{
+		IdempotencyKey: r.FormValue("idempotency_key"),
+	})
 	if err != nil {
 		return InternalError(err, "Could not send archive")
 	}
@@ -367,7 +375,7 @@ var sendConversationArchiveFunc = delay.Func(
 			}
 			return err
 		}
-		sent, err := sendConversationArchive(conversation, account, c)
+		sent, err := sendConversationArchive(conversation, account, c, SendArchiveOptions{})
 		if err != nil {
 			log.Errorf(c, "  Error sending conversation archive: %s", err.Error())
 			if !appengine.IsDevAppServer() {
@@ -383,7 +391,11 @@ var sendConversationArchiveFunc = delay.Func(
 		return nil
 	})
 
-func sendArchive(account *Account, c context.Context) (int, error) {
+type SendArchiveOptions struct {
+	IdempotencyKey string
+}
+
+func sendArchive(account *Account, c context.Context, options SendArchiveOptions) (int, error) {
 	slackClient := account.NewSlackClient(c)
 	conversations, err := getConversations(slackClient, account)
 	if err != nil {
@@ -391,7 +403,14 @@ func sendArchive(account *Account, c context.Context) (int, error) {
 	}
 	sentCount := 0
 	for _, conversation := range conversations.AllConversations {
-		sent, err := sendConversationArchive(conversation, account, c)
+		conversationType, ref := conversation.ToRef()
+		idempotencyKey := options.IdempotencyKey
+		if idempotencyKey != "" {
+			idempotencyKey = strings.Join([]string{idempotencyKey, conversationType, ref}, ":")
+		}
+		sent, err := sendConversationArchive(conversation, account, c, SendArchiveOptions{
+			IdempotencyKey: idempotencyKey,
+		})
 		if err != nil {
 			return sentCount, err
 		}
@@ -418,13 +437,13 @@ func sendArchiveErrorMail(e error, c context.Context, slackUserId string) {
 		// these errors are transient), we don't want to know about them.
 		return
 	}
-	errorMessage := &mail.Message{
-		Sender:  "Slack Archive Admin <admin@slack-archive.appspotmail.com>",
-		To:      []string{"mihai.parparita@gmail.com"},
-		Subject: fmt.Sprintf("Slack Archive Send Error for %s", slackUserId),
-		Body:    fmt.Sprintf("Error: %s", e),
+	errorMessage := EmailMessage{
+		From:     fmt.Sprintf("Slack Archive Admin <%s>", emailConfig.AdminFromEmail),
+		To:       []string{emailConfig.AdminToEmail},
+		Subject:  fmt.Sprintf("Slack Archive Send Error for %s", slackUserId),
+		TextBody: fmt.Sprintf("Error: %s", e),
 	}
-	err := mail.Send(c, errorMessage)
+	err := SendEmail(c, errorMessage)
 	if err != nil {
 		log.Errorf(c, "Error %s sending error email.", err.Error())
 	}
@@ -438,7 +457,9 @@ func sendConversationArchiveHandler(w http.ResponseWriter, r *http.Request, stat
 		return SlackFetchError(err, "conversation")
 	}
 	c := appengine.NewContext(r)
-	sent, err := sendConversationArchive(conversation, state.Account, c)
+	sent, err := sendConversationArchive(conversation, state.Account, c, SendArchiveOptions{
+		IdempotencyKey: r.FormValue("idempotency_key"),
+	})
 	if err != nil {
 		return InternalError(err, "Could not send conversation archive")
 	}
@@ -450,7 +471,7 @@ func sendConversationArchiveHandler(w http.ResponseWriter, r *http.Request, stat
 	return RedirectToRoute("conversation-archive", "type", conversationType, "ref", ref)
 }
 
-func sendConversationArchive(conversation Conversation, account *Account, c context.Context) (bool, error) {
+func sendConversationArchive(conversation Conversation, account *Account, c context.Context, options SendArchiveOptions) (bool, error) {
 	slackClient := account.NewSlackClient(c)
 	emailAddress, err := account.GetDigestEmailAddress(slackClient)
 	if err != nil {
@@ -478,15 +499,41 @@ func sendConversationArchive(conversation Conversation, account *Account, c cont
 		return false, err
 	}
 	sender := fmt.Sprintf(
-		"%s Slack Archive <archive@slack-archive.appspotmail.com>", team.Name)
-	archiveMessage := &mail.Message{
-		Sender:   sender,
-		To:       []string{emailAddress},
-		Subject:  fmt.Sprintf("%s Archive", conversation.Name()),
-		HTMLBody: archiveHtml.String(),
+		"%s Slack Archive <%s>", team.Name, emailConfig.ArchiveFromEmail)
+	idempotencyKey := options.IdempotencyKey
+	if idempotencyKey == "" {
+		conversationType, ref := conversation.ToRef()
+		idempotencyKey = stableArchiveIdempotencyKey(
+			account, conversationType, ref, emailAddress, archive.StartTime)
 	}
-	err = mail.Send(c, archiveMessage)
+	archiveMessage := EmailMessage{
+		From:           sender,
+		To:             []string{emailAddress},
+		Subject:        fmt.Sprintf("%s Archive", conversation.Name()),
+		HTMLBody:       archiveHtml.String(),
+		IdempotencyKey: idempotencyKey,
+	}
+	err = SendEmail(c, archiveMessage)
 	return true, err
+}
+
+func stableArchiveIdempotencyKey(account *Account, conversationType string, ref string, emailAddress string, archiveStartTime time.Time) string {
+	return strings.Join([]string{
+		"archive",
+		account.SlackUserId,
+		conversationType,
+		ref,
+		emailAddress,
+		archiveStartTime.In(account.TimezoneLocation).Format("2006-01-02"),
+	}, ":")
+}
+
+func newIdempotencyKey(prefix string) string {
+	var b [16]byte
+	if _, err := rand.Read(b[:]); err != nil {
+		return fmt.Sprintf("%s:%d", prefix, time.Now().UnixNano())
+	}
+	return prefix + ":" + hex.EncodeToString(b[:])
 }
 
 func archiveFileThumbnailHandler(w http.ResponseWriter, r *http.Request) *AppError {

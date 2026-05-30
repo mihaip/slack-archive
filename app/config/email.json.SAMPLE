@@ -1,0 +1,9 @@
+{
+  "provider": "cloudflare",
+  "base_url": "https://slack-archive.persistent.info",
+  "archive_from_email": "archive@slack-archive.persistent.info",
+  "admin_from_email": "admin@slack-archive.persistent.info",
+  "admin_to_email": "admin@example.com",
+  "cloudflare_account_id": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+  "cloudflare_api_token": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+}

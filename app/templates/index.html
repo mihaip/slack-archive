@@ -31,6 +31,7 @@
 </div>
 
 <form method="POST" action="{{routeUrl "send-archive"}}">
+  <input type="hidden" name="idempotency_key" value="{{.ArchiveSendIdempotencyKey}}">
   <input type="submit" class="action-button" value="Send Archive">
 </form>
 

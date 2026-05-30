@@ -16,7 +16,6 @@ import (
 
 	"google.golang.org/appengine"
 	"google.golang.org/appengine/log"
-	"google.golang.org/appengine/mail"
 	"google.golang.org/appengine/urlfetch"
 
 	"github.com/gorilla/sessions"
@@ -237,11 +236,11 @@ func sendAppErrorMail(e *AppError, r *http.Request) {
 	session, _ := sessionStore.Get(r, sessionConfig.CookieName)
 	userId, _ := session.Values[sessionConfig.UserIdKey].(string)
 
-	errorMessage := &mail.Message{
-		Sender:  "Slack Archive Admin <admin@slack-archive.appspotmail.com>",
-		To:      []string{"mihai.parparita@gmail.com"},
+	errorMessage := EmailMessage{
+		From:    fmt.Sprintf("Slack Archive Admin <%s>", emailConfig.AdminFromEmail),
+		To:      []string{emailConfig.AdminToEmail},
 		Subject: fmt.Sprintf("Slack Archive Internal Error on %s", r.URL),
-		Body: fmt.Sprintf(`Request URL: %s
+		TextBody: fmt.Sprintf(`Request URL: %s
 HTTP status code: %d
 Error type: %d
 User ID: %s
@@ -256,7 +255,7 @@ Error: %s`,
 			e.Error),
 	}
 	c := appengine.NewContext(r)
-	err := mail.Send(c, errorMessage)
+	err := SendEmail(c, errorMessage)
 	if err != nil {
 		log.Errorf(c, "Error %s sending error email.", err.Error())
 	}
@@ -308,7 +307,7 @@ func AbsolutePathUrl(path string) string {
 	if appengine.IsDevAppServer() {
 		baseUrl = "http://localhost:8080"
 	} else {
-		baseUrl = "https://slack-archive.appspot.com"
+		baseUrl = emailConfig.BaseUrl
 	}
 	return baseUrl + path
 }
