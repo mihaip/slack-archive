@@ -8,6 +8,7 @@ import (
 	"html/template"
 	"io/ioutil"
 	log_ "log"
+	"net"
 	"net/http"
 	"path/filepath"
 	"runtime/debug"
@@ -244,6 +245,11 @@ func sendAppErrorMail(e *AppError, r *http.Request) {
 HTTP status code: %d
 Error type: %d
 User ID: %s
+Client IP: %s
+Remote address: %s
+User agent: %s
+Referer: %s
+App Engine request log ID: %s
 
 Message: %s
 Error: %s`,
@@ -251,6 +257,11 @@ Error: %s`,
 			e.Code,
 			e.Type,
 			userId,
+			requestClientIP(r),
+			r.RemoteAddr,
+			r.UserAgent(),
+			r.Referer(),
+			r.Header.Get("X-Appengine-Request-Log-Id"),
 			e.Message,
 			e.Error),
 	}
@@ -259,6 +270,26 @@ Error: %s`,
 	if err != nil {
 		log.Errorf(c, "Error %s sending error email.", err.Error())
 	}
+}
+
+func requestClientIP(r *http.Request) string {
+	if ip := strings.TrimSpace(r.Header.Get("X-Appengine-User-IP")); ip != "" {
+		return ip
+	}
+	if forwardedFor := r.Header.Get("X-Forwarded-For"); forwardedFor != "" {
+		ip := strings.TrimSpace(strings.Split(forwardedFor, ",")[0])
+		if ip != "" {
+			return ip
+		}
+	}
+	if r.RemoteAddr == "" {
+		return ""
+	}
+	host, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil {
+		return r.RemoteAddr
+	}
+	return host
 }
 
 type Template struct {

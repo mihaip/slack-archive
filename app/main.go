@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"html/template"
 	"io"
@@ -179,6 +180,9 @@ func slackOAuthCallbackHandler(w http.ResponseWriter, r *http.Request) *AppError
 	httpClient := urlfetch.Client(c)
 
 	code := r.FormValue("code")
+	if code == "" {
+		return BadRequest(errors.New("missing OAuth code"), "Missing OAuth code")
+	}
 	redirectUrl := AbsolutePathUrl(r.URL.Path)
 	token, _, err := slack.GetOAuthToken(
 		httpClient, slackOAuthConfig.ClientId, slackOAuthConfig.ClientSecret, code,
