@@ -35,7 +35,9 @@ func (lookup *UserLookup) GetUser(userId string) (*slack.User, error) {
 	user, ok := lookup.usersById[userId]
 	if !ok {
 		if strings.HasPrefix(userId, "B") {
-			bot, err := lookup.slackClient.GetBotInfo(userId)
+			bot, err := lookup.slackClient.GetBotInfo(slack.GetBotInfoParameters{
+				Bot: userId,
+			})
 			if err == nil {
 				// Synthesize a user object out of a bot, so that the
 				// rest of the code doesn't have to know the difference.

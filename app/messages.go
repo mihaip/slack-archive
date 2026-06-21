@@ -93,7 +93,9 @@ func textToHtml(text string, truncate bool, slackClient *slack.Client) template.
 				}
 			} else if strings.HasPrefix(control, "#C") {
 				channelId := strings.TrimPrefix(control, "#")
-				channel, err := slackClient.GetConversationInfo(channelId, false)
+				channel, err := slackClient.GetConversationInfo(&slack.GetConversationInfoInput{
+					ChannelID: channelId,
+				})
 				if err == nil {
 					anchorText = fmt.Sprintf("#%s", channel.Name)
 					control = fmt.Sprintf("https://slack.com/app_redirect?channel=%s", channelId)

@@ -60,7 +60,9 @@ func (c *ChannelConversation) ToRef() (conversationType string, ref string) {
 }
 
 func (c *ChannelConversation) InitFromRef(ref string, slackClient *slack.Client) error {
-	channel, err := slackClient.GetConversationInfo(ref, false)
+	channel, err := slackClient.GetConversationInfo(&slack.GetConversationInfoInput{
+		ChannelID: ref,
+	})
 	c.channel = channel
 	return err
 }
@@ -97,7 +99,9 @@ func (c *PrivateChannelConversation) ToRef() (conversationType string, ref strin
 }
 
 func (c *PrivateChannelConversation) InitFromRef(ref string, slackClient *slack.Client) error {
-	channel, err := slackClient.GetConversationInfo(ref, false)
+	channel, err := slackClient.GetConversationInfo(&slack.GetConversationInfoInput{
+		ChannelID: ref,
+	})
 	c.channel = channel
 	return err
 }
@@ -140,7 +144,9 @@ func (c *DirectMessageConversation) ToRef() (conversationType string, ref string
 }
 
 func (c *DirectMessageConversation) InitFromRef(ref string, slackClient *slack.Client) error {
-	im, err := slackClient.GetConversationInfo(ref, false)
+	im, err := slackClient.GetConversationInfo(&slack.GetConversationInfoInput{
+		ChannelID: ref,
+	})
 	if err != nil {
 		return err
 	}
@@ -191,7 +197,9 @@ func (c *MultiPartyDirectMessageConversation) ToRef() (conversationType string, 
 }
 
 func (c *MultiPartyDirectMessageConversation) InitFromRef(ref string, slackClient *slack.Client) error {
-	mpim, err := slackClient.GetConversationInfo(ref, false)
+	mpim, err := slackClient.GetConversationInfo(&slack.GetConversationInfoInput{
+		ChannelID: ref,
+	})
 	if err != nil {
 		return err
 	}
