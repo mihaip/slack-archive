@@ -14,6 +14,7 @@ import (
 
 const (
 	ConversationArchiveDateFormat = "January 2, 2006"
+	SlackbotUserID                = "USLACKBOT"
 )
 
 func conversationArchiveUrl(c Conversation) string {
@@ -314,6 +315,10 @@ func getConversations(slackClient *slack.Client, account *Account) (*Conversatio
 			conversation = mpdm
 			conversations.MultiPartyDirectMessages = append(conversations.MultiPartyDirectMessages, mpdm)
 		} else if slackConversation.IsIM {
+			// Slack lists Slackbot DMs here, but conversations.info returns channel_not_found for them.
+			if slackConversation.User == SlackbotUserID {
+				continue
+			}
 			user, err := userLookup.GetUser(slackConversation.User)
 			if err != nil {
 				return nil, err
